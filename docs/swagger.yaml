@@ -1,0 +1,703 @@
+basePath: /traynova
+definitions:
+  structs.CreateAccessLevelRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    required:
+    - description
+    - name
+    type: object
+  structs.CreateActionRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  structs.CreatePermissionRequest:
+    properties:
+      action_id:
+        type: integer
+      resource_id:
+        type: integer
+      role_id:
+        type: integer
+    required:
+    - action_id
+    - resource_id
+    - role_id
+    type: object
+  structs.CreateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  structs.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      role_id:
+        type: integer
+    required:
+    - email
+    - name
+    - password
+    - role_id
+    type: object
+  structs.CreateUserTokenTypeRequest:
+    properties:
+      type:
+        type: string
+    required:
+    - type
+    type: object
+  structs.GoogleLoginRequest:
+    properties:
+      id_token:
+        type: string
+    required:
+    - id_token
+    type: object
+  structs.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  structs.LogoutRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  structs.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  structs.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      role_id:
+        type: integer
+    required:
+    - email
+    - name
+    - password
+    - role_id
+    type: object
+  structs.UpdateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API para el manejo de autenticación de usuarios.
+  title: Traynova API
+  version: "1.0"
+paths:
+  /access_levels:
+    get:
+      description: Obtiene un listado de niveles del sistema.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Listar Niveles de acceso (CRUD)
+      tags:
+      - Access Levels
+    post:
+      consumes:
+      - application/json
+      description: Permite crear un nuevo nivel de acceso para la jerarquía.
+      parameters:
+      - description: Datos del nivel de acceso
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.CreateAccessLevelRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Crear un Nivel de Acceso (CRUD)
+      tags:
+      - Access Levels
+  /actions:
+    get:
+      description: Obtiene un listado de todas las acciones del sistema.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Listar Acciones (CRUD)
+      tags:
+      - Actions
+    post:
+      consumes:
+      - application/json
+      description: Permite crear una nueva acción para el catálogo de permisos.
+      parameters:
+      - description: Datos de la acción
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.CreateActionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Crear una Acción (CRUD)
+      tags:
+      - Actions
+  /auth/google:
+    post:
+      consumes:
+      - application/json
+      description: Inicia sesión utilizando un id_token provisto por Google. Si el
+        usuario no existe, lo registra como Cliente (1).
+      parameters:
+      - description: Token de Google
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.GoogleLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'access_token: xxx, refresh_token: yyy'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login con Google
+      tags:
+      - Auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Realiza el login de un usuario registrado usando email y password,
+        y devuelve un JWT.
+      parameters:
+      - description: Credenciales de login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'access_token: xxx, refresh_token: yyy'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Iniciar Sesión Tradicional
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalida el token JWT actual (o provisto) en la base de datos de
+        tokens activos.
+      parameters:
+      - description: Token a revocar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cerrar Sesión
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Intercambia un refresh_token válido por un nuevo set de tokens
+        de acceso y refresco.
+      parameters:
+      - description: Refresh Token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'access_token: xxx, refresh_token: yyy'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Refrescar Token
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo usuario públicamente. Solo permite roles Cliente
+        (1) o Coach (2).
+      parameters:
+      - description: Datos del usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Registrar Cliente o Coach
+      tags:
+      - Auth
+  /auth/validate:
+    get:
+      consumes:
+      - application/json
+      description: Permite testear la validez de un access token y extraer la metadata
+        de sesión real.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: id, email, name, role
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Validar Autenticación
+      tags:
+      - Users
+  /permissions:
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo permiso en el sistema.
+      parameters:
+      - description: Datos del permiso
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.CreatePermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Crear Permiso
+      tags:
+      - Permissions
+  /roles:
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo rol en la base de datos (Admin, Gym, etc).
+      parameters:
+      - description: Estructura de creación del rol
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Crear Rol
+      tags:
+      - Roles
+  /roles/{id}:
+    delete:
+      description: Marca un rol como inactivo en lugar de eliminarlo físicamente.
+      parameters:
+      - description: ID del rol
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Deshabilitar Rol
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un rol existente.
+      parameters:
+      - description: ID del rol
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Estructura de actualización del rol
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Editar Rol
+      tags:
+      - Roles
+  /token_types:
+    get:
+      description: Obtiene un listado de los tipos.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Listar Tipos de Token (CRUD)
+      tags:
+      - Token Types
+    post:
+      consumes:
+      - application/json
+      description: Permite crear un nuevo tipo de token.
+      parameters:
+      - description: Datos del tipo de token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.CreateUserTokenTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Crear Tipo de Token (CRUD)
+      tags:
+      - Token Types
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: Permite a perfiles elevados (Admin, Gym, Coach) registrar usuarios
+        como clientes o sub-perfiles sin necesidad de auto-registro.
+      parameters:
+      - description: Datos del usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: message, id
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Crear Usuario Interno
+      tags:
+      - Users
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-Key
+    type: apiKey
+  BasicAuth:
+    type: basic
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
