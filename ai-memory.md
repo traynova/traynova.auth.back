@@ -78,3 +78,13 @@ La arquitectura sigue una estructura inspirada en capas y Clean Architecture per
   3. Declarar la interfaz Port si se consume un Repository o External Service (`domain/ports`).
   4. Implementar funcionalidad en `app/` recibiendo las abstracciones.
   5. Acoplar redimensionador y request parser HTTP en el Controler y enrutar en `ServerRoutesDefinition.go`.
+
+## 11. Configuración de Despliegue y Control de Versiones
+
+* **Variables de Entorno y Git ( `.gitignore` ):**
+  Se centralizó que los archivos `.env`, así como logs (`*.log`), binarios (`*.exe`, `*.so`), directorios IDE (`.idea/`, `.vscode/`) y la carpeta dinámica `dist/` e incluso `node_modules/` (en caso de convivir con JS) queden estrictamente excluidos del respositorio para evitar subidas inseguras.
+* **Conteneurización ( `Dockerfile` ):**
+  Se reestructuró el despliegue para usar una **Construcción Multi-Etapa (Multi-stage Build)** puramente en Golang:
+  1. Utiliza `golang:1.25.0-alpine` como **Builder** de los archivos binarios (`CGO_ENABLED=0` para portabilidad máxima en Alpine linux).
+  2. Produce un ejecutable de poco tamaño insertado en un nuevo ambiente base ligero `alpine:latest` provisto con instaladores CAs (`ca-certificates tzdata`) para habilitar requests SSL salientes (necesarios para OAuth de Google o Webhooks al MS Node.js).
+  3. Esto asegura imágenes mucho más compactas, seguras y especializadas, abandonando por completo ecosistemas innecesarios ajenos a Go.

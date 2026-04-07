@@ -1,20 +1,39 @@
-# Crear archivo Dockerfile
-echo "FROM node:18-alpine
+# Usa la imagen oficial de Golang como entorno de compilación (Builder)
+FROM golang:1.25.0-alpine AS builder
 
-# Crear directorio de trabajo
+# Configura variables de entorno para la construcción
+ENV CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
+
+# Crea el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar package.json y package-lock.json
-COPY package*.json ./
+# Copia los archivos de módulos de go
+COPY go.mod go.sum ./
 
-# Instalar dependencias
-RUN npm install --production
+# Descarga todas las dependencias
+RUN go mod download
 
-# Copiar el resto de la app
+# Copia el resto del código fuente
 COPY . .
 
-# Exponer puerto
-EXPOSE 3000
+# Compila la aplicación. Genera un ejecutable llamado "traynova-auth"
+RUN go build -o traynova-auth main.go
 
-# Comando para correr la app
-CMD [\"node\", \"index.js\"]" > Dockerfile
+# Crea una segunda etapa más ligera para el despliegue
+FROM alpine:latest
+
+# Instala certificados necesarios para llamadas HTTPS externas
+RUN apk --no-cache add ca-certificates tzdata
+
+WORKDIR /app
+
+# Copia el binario compilado desde la etapa "builder"
+COPY --from=builder /app/traynova-auth .
+
+# Expone el puerto por defecto (asumido 8080 del stack web normal de backend)
+EXPOSE 8080
+
+# Comando para ejecutar la aplicación
+CMD ["./traynova-auth"]
