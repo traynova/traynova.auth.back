@@ -27,10 +27,6 @@ type env struct {
 	BASIC_AUTH_PASSWORD     string `mapstructure:"BASIC_AUTH_PASSWORD" validate:"required"`
 	API_KEY                 string `mapstructure:"API_KEY" validate:"required"`
 	X_API_KEY               string `mapstructure:"X_API_KEY" validate:"required"`
-	RDB_HOST                string `mapstructure:"RDB_HOST" validate:"required"`
-	RDB_PORT                string `mapstructure:"RDB_PORT" validate:"required"`
-	RDB_PASS                string `mapstructure:"RDB_PASS" validate:"required"`
-	RDB_DB                  string `mapstructure:"RDB_DB" validate:"required"`
 }
 
 func (v *env) Validate() error {

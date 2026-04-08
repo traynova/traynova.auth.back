@@ -52,18 +52,11 @@ func setupEnvironment(isLocalEnv bool) error {
 
 func initServer() {
 	address := viper.GetString("TRAYNOVA_AUTH_SERVER_ADDRESS")
-	certFile := viper.GetString("TLS_CERT")
-	certKey := viper.GetString("TLS_KEY")
 	ginMode := viper.GetString("GIN_MODE")
 	if address == "" {
 		logger.Fatal("Server address env 'TRAYNOVA_SERVER_ADDRESS' not set")
 	}
-	if certFile == "" {
-		logger.Fatal("TLS certificate file env 'TLS_CERT' not set")
-	}
-	if certKey == "" {
-		logger.Fatal("TLS key file env 'TLS_KEY' not set")
-	}
+
 	if ginMode == "" {
 		logger.Fatal("GIN mode env 'GIN_MODE' not set")
 	}
@@ -73,7 +66,7 @@ func initServer() {
 	routes.NewRoutesDefinition(serverInstance)
 
 	logger.Info("[TRAYNOVA_AUTH] Start server on -> %v", address)
-	if err := serverInstance.RunTLS(address, certFile, certKey); err != nil {
+	if err := serverInstance.Run(address); err != nil {
 		logger.Fatal("Failed to start server: %v", err)
 	}
 }
