@@ -33,19 +33,18 @@ func Run(isLocalEnv bool) {
 }
 
 func setupEnvironment(isLocalEnv bool) error {
+	viper.AutomaticEnv()
+
 	if isLocalEnv {
 		logger.Info("[TRAYNOVA_AUTH] server started in development mode")
 		viper.SetConfigFile(EnvLocalConfigFile)
+		err := viper.ReadInConfig()
+		if err != nil {
+			return fmt.Errorf("error reading env file: %v", err)
+		}
 	} else {
 		logger.Info("[TRAYNOVA_AUTH] server started in production mode")
-		viper.SetConfigFile(EnvProductionConfigFile)
-	}
-
-	viper.AutomaticEnv()
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		return fmt.Errorf("error reading env file: %v", err)
+		// In production, rely on environment variables set in Render
 	}
 
 	return nil
