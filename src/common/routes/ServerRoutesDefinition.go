@@ -1,12 +1,12 @@
 package routes
 
 import (
-	"net/http"
-	"sync"
-	"time"
 	"gestrym/docs"
 	"gestrym/src/common/middleware"
 	"gestrym/src/common/utils"
+	"net/http"
+	"sync"
+	"time"
 
 	"gestrym/src/common/config"
 
@@ -111,7 +111,8 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	// Controllers
 	authController := authCtrl.NewAuthController(authService)
 	userController := userCtrl.NewUserController(userService)
-	roleController := roleCtrl.NewRoleController(roleService)
+	rolePrivateController := roleCtrl.NewRolePrivateController(roleService)
+	rolePublicController := roleCtrl.NewRolePublicController(roleService)
 	permissionController := permCtrl.NewPermissionController(permissionService)
 	actionController := actionCtrl.NewActionController(actionService)
 	accessLevelController := levelCtrl.NewAccessLevelController(accessLevelService)
@@ -132,8 +133,8 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	r.protectedGroup.Use(middleware.SetupApiKeyMiddleware())
 
 	// Add routes to groups
-	r.addPublicRoutes(authController)
-	r.addPrivateRoutes(userController, roleController, permissionController, actionController, accessLevelController, tokenTypeController, authController)
+	r.addPublicRoutes(authController, rolePublicController)
+	r.addPrivateRoutes(userController, rolePrivateController, permissionController, actionController, accessLevelController, tokenTypeController, authController)
 	r.addInternalRoutes()
 	r.addProtectedRoutes()
 
@@ -164,15 +165,17 @@ func (r *routesDefinition) addDefaultRoutes(serverInstance *gin.Engine) {
 	})
 }
 
-func (r *routesDefinition) addPublicRoutes(authController *authCtrl.AuthController) {
+func (r *routesDefinition) addPublicRoutes(authController *authCtrl.AuthController, rolePublicController *roleCtrl.RolePublicController) {
 	r.publicGroup.POST("/auth/login", authController.Login)
 	r.publicGroup.POST("/auth/google", authController.GoogleLogin)
 	r.publicGroup.POST("/auth/register", authController.Register)
+	r.publicGroup.GET("/roles", rolePublicController.GetRoles)
+	r.publicGroup.POST("/roles", rolePublicController.CreateRole)
 }
 
 func (r *routesDefinition) addPrivateRoutes(
 	userController *userCtrl.UserController,
-	roleController *roleCtrl.RoleController,
+	rolePrivateController *roleCtrl.RolePrivateController,
 	permissionController *permCtrl.PermissionController,
 	actionController *actionCtrl.ActionController,
 	accessLevelController *levelCtrl.AccessLevelController,
@@ -188,9 +191,8 @@ func (r *routesDefinition) addPrivateRoutes(
 	// El registro privado (dashboard) solo está permitido a Gym, Coach o Admin (roles 2, 3, 4)
 	r.privateGroup.POST("/users/register", middleware.RequireRoles(2, 3, 4), userController.CreateUser)
 
-	r.privateGroup.POST("/roles", roleController.CreateRole)
-	r.privateGroup.PUT("/roles/:id", roleController.UpdateRole)
-	r.privateGroup.DELETE("/roles/:id", roleController.DisableRole)
+	r.privateGroup.PUT("/roles/:id", rolePrivateController.UpdateRole)
+	r.privateGroup.DELETE("/roles/:id", rolePrivateController.DisableRole)
 	r.privateGroup.POST("/permissions", permissionController.CreatePermission)
 
 	// Catálogos (Solo admins, asumiendo rol 4 = Admin)

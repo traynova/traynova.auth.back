@@ -1,4 +1,4 @@
-package structs
+package structs_roles
 
 type CreateRoleRequest struct {
 	Name        string `json:"name" binding:"required"`

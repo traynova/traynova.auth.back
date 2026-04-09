@@ -2,31 +2,31 @@ package config
 
 import (
 	"errors"
+	"gestrym/src/common/utils"
 	"os"
 	"reflect"
 	"strings"
 	"sync"
-	"gestrym/src/common/utils"
 
 	"github.com/spf13/viper"
 )
 
 type env struct {
-	TRAYNOVA_SERVER_ADDRESS string `mapstructure:"TRAYNOVA_SERVER_ADDRESS" validate:"required"`
-	GIN_MODE                string `mapstructure:"GIN_MODE" validate:"required,oneof=debug release test"`
-	GOOGLE_CLIENT_ID        string `mapstructure:"GOOGLE_CLIENT_ID" validate:"required"`
-	GORM_LOG_LEVEL          string `mapstructure:"GORM_LOG_LEVEL" validate:"required,oneof=error warn info silent"`
-	POSTGRES_DB_HOST        string `mapstructure:"POSTGRES_DB_HOST" validate:"required"`
-	POSTGRES_DB_PORT        string `mapstructure:"POSTGRES_DB_PORT" validate:"required"`
-	POSTGRES_DB_USER        string `mapstructure:"POSTGRES_DB_USER" validate:"required"`
-	POSTGRES_DB_PASSWORD    string `mapstructure:"POSTGRES_DB_PASSWORD" validate:"required"`
-	POSTGRES_DB_NAME        string `mapstructure:"INTERMEDIATOR_POSTGRES_DB_NAME" validate:"required"`
-	POSTGRES_DB_SSLMODE     string `mapstructure:"POSTGRES_DB_SSLMODE" validate:"required"`
-	JWT_KEY                 string `mapstructure:"JWT_KEY" validate:"required"`
-	BASIC_AUTH_USERNAME     string `mapstructure:"BASIC_AUTH_USERNAME" validate:"required"`
-	BASIC_AUTH_PASSWORD     string `mapstructure:"BASIC_AUTH_PASSWORD" validate:"required"`
-	API_KEY                 string `mapstructure:"API_KEY" validate:"required"`
-	X_API_KEY               string `mapstructure:"X_API_KEY" validate:"required"`
+	GIN_MODE               string `mapstructure:"GIN_MODE" validate:"required,oneof=debug release test"`
+	GOOGLE_CLIENT_ID       string `mapstructure:"GOOGLE_CLIENT_ID"`
+	GORM_LOG_LEVEL         string `mapstructure:"GORM_LOG_LEVEL" validate:"required,oneof=error warn info silent"`
+	POSTGRES_DB_HOST       string `mapstructure:"POSTGRES_DB_HOST" validate:"required"`
+	POSTGRES_DB_PORT       string `mapstructure:"POSTGRES_DB_PORT" validate:"required"`
+	POSTGRES_DB_USER       string `mapstructure:"POSTGRES_DB_USER" validate:"required"`
+	POSTGRES_DB_PASSWORD   string `mapstructure:"POSTGRES_DB_PASSWORD" validate:"required"`
+	POSTGRES_DB_NAME       string `mapstructure:"INTERMEDIATOR_POSTGRES_DB_NAME" validate:"required"`
+	POSTGRES_DB_SSLMODE    string `mapstructure:"POSTGRES_DB_SSLMODE" validate:"required"`
+	JWT_KEY                string `mapstructure:"JWT_KEY" validate:"required"`
+	BASIC_AUTH_USERNAME    string `mapstructure:"BASIC_AUTH_USERNAME" validate:"required"`
+	BASIC_AUTH_PASSWORD    string `mapstructure:"BASIC_AUTH_PASSWORD" validate:"required"`
+	API_KEY                string `mapstructure:"API_KEY" validate:"required"`
+	X_API_KEY              string `mapstructure:"X_API_KEY" validate:"required"`
+	GESTRYM_SERVER_ADDRESS string `mapstructure:"GESTRYM_SERVER_ADDRESS" validate:"required"`
 }
 
 func (v *env) Validate() error {

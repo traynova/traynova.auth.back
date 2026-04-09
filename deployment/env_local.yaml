@@ -2,14 +2,9 @@
 # TLS
 TLS_CERT: "../deployment/certs/cert.pem"
 TLS_KEY: "../deployment/certs/key.pem"
-INTERMEDIATOR_UPDATE_BALANCE_ACTIVE: false
-
-
-TRAYNOVA_AUTH_SERVER_ADDRESS: 127.0.0.1:60188
-
+GESTRYM_SERVER_ADDRESS: localhost:60188
+GOOGLE_CLIENT_ID: "your-google-client-id.apps.googleusercontent.com"
 JWT_KEY: "traynova"
-
-
 POSTGRES_DB_HOST: turntable.proxy.rlwy.net
 POSTGRES_DB_PORT: 31779
 POSTGRES_DB_USER: postgres

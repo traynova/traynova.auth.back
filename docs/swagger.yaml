@@ -1,4 +1,4 @@
-basePath: /traynova
+basePath: /gestrym-auth
 definitions:
   structs.CreateAccessLevelRequest:
     properties:
@@ -30,29 +30,20 @@ definitions:
     - resource_id
     - role_id
     type: object
-  structs.CreateRoleRequest:
-    properties:
-      description:
-        type: string
-      name:
-        type: string
-    required:
-    - name
-    type: object
   structs.CreateUserRequest:
     properties:
       email:
         type: string
       name:
         type: string
-      password:
+      phone:
         type: string
       role_id:
         type: integer
     required:
     - email
     - name
-    - password
+    - phone
     - role_id
     type: object
   structs.CreateUserTokenTypeRequest:
@@ -99,17 +90,26 @@ definitions:
         type: string
       name:
         type: string
-      password:
+      phone:
         type: string
       role_id:
         type: integer
     required:
     - email
     - name
-    - password
+    - phone
     - role_id
     type: object
-  structs.UpdateRoleRequest:
+  structs_roles.CreateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  structs_roles.UpdateRoleRequest:
     properties:
       description:
         type: string
@@ -119,7 +119,7 @@ definitions:
 info:
   contact: {}
   description: API para el manejo de autenticación de usuarios.
-  title: Traynova API
+  title: Gestrym API
   version: "1.0"
 paths:
   /access_levels:
@@ -470,42 +470,7 @@ paths:
       summary: Crear Permiso
       tags:
       - Permissions
-  /roles:
-    post:
-      consumes:
-      - application/json
-      description: Crea un nuevo rol en la base de datos (Admin, Gym, etc).
-      parameters:
-      - description: Estructura de creación del rol
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs.CreateRoleRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - ApiKeyAuth: []
-      summary: Crear Rol
-      tags:
-      - Roles
-  /roles/{id}:
+  /private/roles/{id}:
     delete:
       description: Marca un rol como inactivo en lugar de eliminarlo físicamente.
       parameters:
@@ -557,7 +522,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/structs.UpdateRoleRequest'
+          $ref: '#/definitions/structs_roles.UpdateRoleRequest'
       produces:
       - application/json
       responses:
@@ -584,6 +549,67 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Editar Rol
+      tags:
+      - Roles
+  /public/roles:
+    get:
+      description: Obtiene todos los roles disponibles.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Obtener todos los Roles
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo rol en la base de datos (Admin, Gym, etc).
+      parameters:
+      - description: Estructura de creación del rol
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_roles.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Crear Rol
       tags:
       - Roles
   /token_types:

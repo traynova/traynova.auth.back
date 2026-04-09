@@ -533,61 +533,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/roles": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Crea un nuevo rol en la base de datos (Admin, Gym, etc).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Roles"
-                ],
-                "summary": "Crear Rol",
-                "parameters": [
-                    {
-                        "description": "Estructura de creación del rol",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/structs.CreateRoleRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/roles/{id}": {
+        "/private/roles/{id}": {
             "put": {
                 "security": [
                     {
@@ -619,7 +565,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/structs.UpdateRoleRequest"
+                            "$ref": "#/definitions/structs_roles.UpdateRoleRequest"
                         }
                     }
                 ],
@@ -694,6 +640,95 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/public/roles": {
+            "get": {
+                "description": "Obtiene todos los roles disponibles.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Obtener todos los Roles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un nuevo rol en la base de datos (Admin, Gym, etc).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Crear Rol",
+                "parameters": [
+                    {
+                        "description": "Estructura de creación del rol",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/structs_roles.CreateRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -912,26 +947,12 @@ const docTemplate = `{
                 }
             }
         },
-        "structs.CreateRoleRequest": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "structs.CreateUserRequest": {
             "type": "object",
             "required": [
                 "email",
                 "name",
-                "password",
+                "phone",
                 "role_id"
             ],
             "properties": {
@@ -941,7 +962,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "password": {
+                "phone": {
                     "type": "string"
                 },
                 "role_id": {
@@ -1013,7 +1034,7 @@ const docTemplate = `{
             "required": [
                 "email",
                 "name",
-                "password",
+                "phone",
                 "role_id"
             ],
             "properties": {
@@ -1023,7 +1044,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "password": {
+                "phone": {
                     "type": "string"
                 },
                 "role_id": {
@@ -1031,7 +1052,21 @@ const docTemplate = `{
                 }
             }
         },
-        "structs.UpdateRoleRequest": {
+        "structs_roles.CreateRoleRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "structs_roles.UpdateRoleRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -1064,9 +1099,9 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/traynova",
+	BasePath:         "/gestrym-auth",
 	Schemes:          []string{},
-	Title:            "Traynova API",
+	Title:            "Gestrym API",
 	Description:      "API para el manejo de autenticación de usuarios.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

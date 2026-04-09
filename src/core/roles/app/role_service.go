@@ -4,13 +4,14 @@ import (
 	"context"
 	"gestrym/src/common/models"
 	"gestrym/src/core/roles/domain/ports"
+	structs_roles "gestrym/src/core/roles/domain/structs"
 )
 
 type IRoleService interface {
-	CreateRole(ctx context.Context, name, description string) (*models.Role, error)
-	UpdateRole(ctx context.Context, id uint, name, description string) (*models.Role, error)
+	CreateRole(ctx context.Context, name, description string) (*structs_roles.RolesResponse, error)
+	UpdateRole(ctx context.Context, id uint, name, description string) (*structs_roles.RolesResponse, error)
 	DisableRole(ctx context.Context, id uint) error
-	GetRoles() ([]models.Role, error)
+	GetRoles() ([]structs_roles.RolesResponse, error)
 }
 
 type roleService struct {
@@ -21,7 +22,7 @@ func NewRoleService(r ports.IRoleRepository) IRoleService {
 	return &roleService{repo: r}
 }
 
-func (s *roleService) CreateRole(ctx context.Context, name, description string) (*models.Role, error) {
+func (s *roleService) CreateRole(ctx context.Context, name, description string) (*structs_roles.RolesResponse, error) {
 	role := &models.Role{
 		Name:        name,
 		Description: description,
@@ -31,10 +32,16 @@ func (s *roleService) CreateRole(ctx context.Context, name, description string) 
 	if err != nil {
 		return nil, err
 	}
-	return role, nil
+
+	rolesRespoonse := structs_roles.RolesResponse{
+		ID:          role.ID,
+		Name:        role.Name,
+		Description: role.Description,
+	}
+	return &rolesRespoonse, nil
 }
 
-func (s *roleService) UpdateRole(ctx context.Context, id uint, name, description string) (*models.Role, error) {
+func (s *roleService) UpdateRole(ctx context.Context, id uint, name, description string) (*structs_roles.RolesResponse, error) {
 	role, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -51,8 +58,13 @@ func (s *roleService) UpdateRole(ctx context.Context, id uint, name, description
 	if err != nil {
 		return nil, err
 	}
+	roleResponse := &structs_roles.RolesResponse{
+		ID:          role.ID,
+		Name:        role.Name,
+		Description: role.Description,
+	}
 
-	return role, nil
+	return roleResponse, nil
 }
 
 func (s *roleService) DisableRole(ctx context.Context, id uint) error {
@@ -65,6 +77,19 @@ func (s *roleService) DisableRole(ctx context.Context, id uint) error {
 	return s.repo.Disable(ctx, role)
 }
 
-func (s *roleService) GetRoles() ([]models.Role, error) {
-	return s.repo.GetRoles()
+func (s *roleService) GetRoles() ([]structs_roles.RolesResponse, error) {
+	roles, err := s.repo.GetRoles()
+	if err != nil {
+		return nil, err
+	}
+	var rolesResponse []structs_roles.RolesResponse
+
+	for _, role := range roles {
+		rolesResponse = append(rolesResponse, structs_roles.RolesResponse{
+			ID:          role.ID,
+			Name:        role.Name,
+			Description: role.Description,
+		})
+	}
+	return rolesResponse, nil
 }
