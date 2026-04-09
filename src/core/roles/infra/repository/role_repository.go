@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"traynova/src/common/models"
-	"traynova/src/core/roles/domain/ports"
+	"gestrym/src/common/models"
+	"gestrym/src/core/roles/domain/ports"
 
 	"gorm.io/gorm"
 )
@@ -49,5 +49,11 @@ func (r *roleRepository) Disable(ctx context.Context, role *models.Role) error {
 func (r *roleRepository) FindAll(ctx context.Context) ([]models.Role, error) {
 	var roles []models.Role
 	err := r.db.WithContext(ctx).Find(&roles).Error
+	return roles, err
+}
+
+func (r *roleRepository) GetRoles() ([]models.Role, error) {
+	var roles []models.Role
+	err := r.db.Find(&roles).Error
 	return roles, err
 }

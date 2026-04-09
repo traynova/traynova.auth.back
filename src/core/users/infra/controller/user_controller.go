@@ -2,8 +2,8 @@ package controller
 
 import (
 	"net/http"
-	"traynova/src/core/users/app"
-	"traynova/src/core/users/domain/structs"
+	"gestrym/src/core/users/app"
+	"gestrym/src/core/users/domain/structs"
 
 	"github.com/gin-gonic/gin"
 )

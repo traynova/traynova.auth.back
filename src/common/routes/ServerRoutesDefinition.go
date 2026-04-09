@@ -4,44 +4,44 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	"traynova/docs"
-	"traynova/src/common/middleware"
-	"traynova/src/common/utils"
+	"gestrym/docs"
+	"gestrym/src/common/middleware"
+	"gestrym/src/common/utils"
 
-	"traynova/src/common/config"
+	"gestrym/src/common/config"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	authApp "traynova/src/core/auth/app"
-	authCtrl "traynova/src/core/auth/infra/controller"
-	authRepo "traynova/src/core/auth/infra/repository"
+	authApp "gestrym/src/core/auth/app"
+	authCtrl "gestrym/src/core/auth/infra/controller"
+	authRepo "gestrym/src/core/auth/infra/repository"
 
-	roleApp "traynova/src/core/roles/app"
-	roleCtrl "traynova/src/core/roles/infra/controller"
-	roleRepo "traynova/src/core/roles/infra/repository"
+	roleApp "gestrym/src/core/roles/app"
+	roleCtrl "gestrym/src/core/roles/infra/controller"
+	roleRepo "gestrym/src/core/roles/infra/repository"
 
-	permApp "traynova/src/core/permissions/app"
-	permCtrl "traynova/src/core/permissions/infra/controller"
-	permRepo "traynova/src/core/permissions/infra/repository"
+	permApp "gestrym/src/core/permissions/app"
+	permCtrl "gestrym/src/core/permissions/infra/controller"
+	permRepo "gestrym/src/core/permissions/infra/repository"
 
-	userApp "traynova/src/core/users/app"
-	userCtrl "traynova/src/core/users/infra/controller"
-	userRepo "traynova/src/core/users/infra/repository"
+	userApp "gestrym/src/core/users/app"
+	userCtrl "gestrym/src/core/users/infra/controller"
+	userRepo "gestrym/src/core/users/infra/repository"
 
-	actionApp "traynova/src/core/actions/app"
-	actionCtrl "traynova/src/core/actions/infra/controller"
-	actionRepo "traynova/src/core/actions/infra/repository"
+	actionApp "gestrym/src/core/actions/app"
+	actionCtrl "gestrym/src/core/actions/infra/controller"
+	actionRepo "gestrym/src/core/actions/infra/repository"
 
-	levelApp "traynova/src/core/access_levels/app"
-	levelCtrl "traynova/src/core/access_levels/infra/controller"
-	levelRepo "traynova/src/core/access_levels/infra/repository"
+	levelApp "gestrym/src/core/access_levels/app"
+	levelCtrl "gestrym/src/core/access_levels/infra/controller"
+	levelRepo "gestrym/src/core/access_levels/infra/repository"
 
-	tokenTypeApp "traynova/src/core/token_types/app"
-	tokenTypeCtrl "traynova/src/core/token_types/infra/controller"
-	tokenTypeRepo "traynova/src/core/token_types/infra/repository"
+	tokenTypeApp "gestrym/src/core/token_types/app"
+	tokenTypeCtrl "gestrym/src/core/token_types/infra/controller"
+	tokenTypeRepo "gestrym/src/core/token_types/infra/repository"
 )
 
 type routesDefinition struct {
@@ -62,7 +62,7 @@ func NewRoutesDefinition(serverInstance *gin.Engine) *routesDefinition {
 	routesOnce.Do(func() {
 		routesInstance = &routesDefinition{}
 		routesInstance.logger = utils.NewLogger()
-		docs.SwaggerInfo.BasePath = "/traynova-auth"
+		docs.SwaggerInfo.BasePath = "/gestrym-auth"
 		routesInstance.addCORSConfig(serverInstance)
 		routesInstance.addRoutes(serverInstance)
 	})
@@ -145,7 +145,7 @@ func (r *routesDefinition) addDefaultRoutes(serverInstance *gin.Engine) {
 	serverInstance.GET("/", func(cnx *gin.Context) {
 		response := map[string]interface{}{
 			"code":    "OK",
-			"message": "traynova-auth OK...",
+			"message": "gestrym-auth OK...",
 			"date":    utils.GetCurrentTime(),
 		}
 

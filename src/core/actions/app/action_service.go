@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"traynova/src/common/models"
-	"traynova/src/core/actions/domain/ports"
+	"gestrym/src/common/models"
+	"gestrym/src/core/actions/domain/ports"
 )
 
 type IActionService interface {

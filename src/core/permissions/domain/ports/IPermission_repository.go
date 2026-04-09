@@ -2,7 +2,7 @@ package ports
 
 import (
 	"context"
-	"traynova/src/common/models"
+	"gestrym/src/common/models"
 )
 
 type IPermissionRepository interface {

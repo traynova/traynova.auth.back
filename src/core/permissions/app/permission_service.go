@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"traynova/src/common/models"
-	"traynova/src/core/permissions/domain/ports"
+	"gestrym/src/common/models"
+	"gestrym/src/core/permissions/domain/ports"
 )
 
 type IPermissionService interface {

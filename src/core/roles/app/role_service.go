@@ -2,14 +2,15 @@ package app
 
 import (
 	"context"
-	"traynova/src/common/models"
-	"traynova/src/core/roles/domain/ports"
+	"gestrym/src/common/models"
+	"gestrym/src/core/roles/domain/ports"
 )
 
 type IRoleService interface {
 	CreateRole(ctx context.Context, name, description string) (*models.Role, error)
 	UpdateRole(ctx context.Context, id uint, name, description string) (*models.Role, error)
 	DisableRole(ctx context.Context, id uint) error
+	GetRoles() ([]models.Role, error)
 }
 
 type roleService struct {
@@ -62,4 +63,8 @@ func (s *roleService) DisableRole(ctx context.Context, id uint) error {
 
 	role.IsActive = false
 	return s.repo.Disable(ctx, role)
+}
+
+func (s *roleService) GetRoles() ([]models.Role, error) {
+	return s.repo.GetRoles()
 }

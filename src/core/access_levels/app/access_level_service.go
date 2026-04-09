@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"traynova/src/common/models"
-	"traynova/src/core/access_levels/domain/ports"
+	"gestrym/src/common/models"
+	"gestrym/src/core/access_levels/domain/ports"
 )
 
 type IAccessLevelService interface {

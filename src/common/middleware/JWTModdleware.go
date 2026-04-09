@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"traynova/src/common/utils"
+	"gestrym/src/common/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"

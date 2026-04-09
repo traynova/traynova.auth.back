@@ -7,8 +7,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
-	"traynova/src/common/models"
-	"traynova/src/core/users/domain/ports"
+	"gestrym/src/common/models"
+	"gestrym/src/core/users/domain/ports"
 )
 
 type IUserService interface {

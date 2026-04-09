@@ -18,8 +18,8 @@ RUN go mod download
 # Copia el resto del código fuente
 COPY . .
 
-# Compila la aplicación. Genera un ejecutable llamado "traynova-auth"
-RUN go build -o traynova-auth main.go
+# Compila la aplicación. Genera un ejecutable llamado "gestrym-auth"
+RUN go build -o gestrym-auth main.go
 
 # Crea una segunda etapa más ligera para el despliegue
 FROM alpine:latest
@@ -30,10 +30,10 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 # Copia el binario compilado desde la etapa "builder"
-COPY --from=builder /app/traynova-auth .
+COPY --from=builder /app/gestrym-auth .
 
 # Expone el puerto por defecto (asumido 8080 del stack web normal de backend)
 EXPOSE 8080
 
 # Comando para ejecutar la aplicación
-CMD ["./traynova-auth"]
+CMD ["./gestrym-auth"]

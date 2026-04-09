@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"traynova/src/common/models"
-	"traynova/src/common/utils"
+	"gestrym/src/common/models"
+	"gestrym/src/common/utils"
 )
 
 var logger = utils.NewLogger()

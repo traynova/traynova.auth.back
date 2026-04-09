@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"traynova/src/common/utils"
+	"gestrym/src/common/utils"
 
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"

@@ -2,8 +2,8 @@ package controller
 
 import (
 	"net/http"
-	"traynova/src/core/auth/app"
-	"traynova/src/core/auth/domain/structs"
+	"gestrym/src/core/auth/app"
+	"gestrym/src/core/auth/domain/structs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"

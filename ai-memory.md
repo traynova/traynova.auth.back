@@ -1,8 +1,8 @@
-# Memoria Técnica Estructurada - Traynova (Auth)
+# Memoria Técnica Estructurada - Gestrym (Auth)
 
 ## 1. Descripción General del Proyecto
 
-* **Tipo de sistema:** Servicio backend / API REST. Modular (microservicios posibles) con BasePath `/traynova-auth`.
+* **Tipo de sistema:** Servicio backend / API REST. Modular (microservicios posibles) con BasePath `/gestrym-auth`.
 * **Propósito del servicio actual:** Proveer rutas de autenticación y manejo de jerarquías (jwt, roles, permisos, users, catalogs, login/registro).
 * **Tecnologías utilizadas:** Golang, Gin, Postgres, GORM, Viper, implementaciones custom de Logging, Swaggo (Swagger UI) y bcrypt.
 
@@ -39,7 +39,7 @@ La arquitectura sigue una estructura inspirada en capas y Clean Architecture per
 ## 5. Casos de Uso (Application Layer) y Lógica de Negocio
 
 * **Crear / Registrar Usuarios (`RegisterUser / CreateUser`):**
-  * *Flujo sin contraseña inicial:* En la creación o registro, el servicio solicita nombres, correo y teléfono en lugar de contraseña. Al instante, se dispara una petición al microservicio `traynova-notification` adjuntando un `confirm_token` seguro para notificar al usuario.
+  * *Flujo sin contraseña inicial:* En la creación o registro, el servicio solicita nombres, correo y teléfono en lugar de contraseña. Al instante, se dispara una petición al microservicio `gestrym-notification` adjuntando un `confirm_token` seguro para notificar al usuario.
   * **Registro Público (`/public/auth/register`)**: Permite únicamente registrar usuarios con `role_id` 1 (Cliente) o 2 (Coach).
   * **Registro Privado Interno (`/private/users/register`)**: Guardado por middleware de roles. Valida matriz jerárquica: Un Admin (4) puede crear a todos. Un Gym (3) solo crea Coach o Clientes. Y un Coach (2) solo aprueba Clientes.
 * **Autenticación (`Login / GoogleLogin / Refresh / Logout`):**
@@ -56,9 +56,9 @@ La arquitectura sigue una estructura inspirada en capas y Clean Architecture per
 
 ## 7. API / Interfaces HTTP
 
-* Rutas Públicas (`/traynova-auth/public/auth/...`): Exponen Login y Registro, parseando DTOs desde JSON.
+* Rutas Públicas (`/gestrym-auth/public/auth/...`): Exponen Login y Registro, parseando DTOs desde JSON.
 * Rutas Privadas Extensas: `/protected` (por API key) y `/private` (Por Bearer JWT).
-* **Swagger Dinámico:** Se levanta en base path (ej: `/traynova-auth/swagger/index.html`) proveyendo documentación automática generada con anotaciones GoDoc `swag init` alojadas en los handlers. Control central ruteador en `ServerRoutesDefinition.go`.
+* **Swagger Dinámico:** Se levanta en base path (ej: `/gestrym-auth/swagger/index.html`) proveyendo documentación automática generada con anotaciones GoDoc `swag init` alojadas en los handlers. Control central ruteador en `ServerRoutesDefinition.go`.
 
 ## 8. Seguridad
 

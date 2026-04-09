@@ -1,10 +1,10 @@
 package controller
 
 import (
+	"gestrym/src/core/roles/app"
+	"gestrym/src/core/roles/domain/structs"
 	"net/http"
 	"strconv"
-	"traynova/src/core/roles/app"
-	"traynova/src/core/roles/domain/structs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -112,4 +112,24 @@ func (c *RoleController) DisableRole(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Rol deshabilitado correctamente"})
+}
+
+// @Summary Obtener todos los Roles
+// @Description Obtiene todos los roles disponibles.
+// @Tags Roles
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Security ApiKeyAuth
+// @Router /roles [get]
+func (c *RoleController) GetRoles(ctx *gin.Context) {
+	roles, err := c.roleService.GetRoles()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error obteniendo roles"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, roles)
 }

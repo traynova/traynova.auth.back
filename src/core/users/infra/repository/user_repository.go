@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"traynova/src/common/models"
-	"traynova/src/core/users/domain/ports"
+	"gestrym/src/common/models"
+	"gestrym/src/core/users/domain/ports"
 
 	"gorm.io/gorm"
 )

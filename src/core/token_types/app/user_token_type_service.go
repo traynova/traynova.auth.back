@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"traynova/src/common/models"
-	"traynova/src/core/token_types/domain/ports"
+	"gestrym/src/common/models"
+	"gestrym/src/core/token_types/domain/ports"
 )
 
 type IUserTokenTypeService interface {

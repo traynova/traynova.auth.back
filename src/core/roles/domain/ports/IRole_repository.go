@@ -2,7 +2,7 @@ package ports
 
 import (
 	"context"
-	"traynova/src/common/models"
+	"gestrym/src/common/models"
 )
 
 type IRoleRepository interface {
@@ -12,4 +12,5 @@ type IRoleRepository interface {
 	FindAll(ctx context.Context) ([]models.Role, error)
 	Update(ctx context.Context, role *models.Role) error
 	Disable(ctx context.Context, role *models.Role) error
+	GetRoles() ([]models.Role, error)
 }

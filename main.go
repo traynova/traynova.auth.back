@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	app "traynova/src"
+	app "gestrym/src"
 )
 
-//	@title			Traynova API
+//	@title			Gestrym API
 //	@version		1.0
 //	@description	API para el manejo de autenticación de usuarios.
-//	@BasePath		/traynova
+//	@BasePath		/gestrym-auth
 
 //	@securityDefinitions.apikey	ApiKeyAuth
 //	@in							header
