@@ -29,6 +29,7 @@ type IAuthService interface {
 	ActivateUser(token string) (*structs_response.GetUserResponse, error)
 	RequestPasswordRecovery(email string) error
 	ResetPassword(req structs_request.PasswordResetRequest) (*structs_response.GetUserResponse, error)
+	ValidateToken(token string) (*structs_response.ValidateTokenResponse, error)
 	GetClientsByUser(userID uint, roleID uint) (interface{}, error)
 }
 
@@ -529,6 +530,27 @@ func (s *authService) ResetPassword(req structs_request.PasswordResetRequest) (*
 	}
 
 	return buildUserResponse(updatedUser), nil
+}
+
+func (s *authService) ValidateToken(token string) (*structs_response.ValidateTokenResponse, error) {
+	claims, err := s.jwt_app.ValidateJwtToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	var expiresAt int64
+	if claims.ExpiresAt != nil {
+		expiresAt = claims.ExpiresAt.Time.Unix()
+	}
+
+	return &structs_response.ValidateTokenResponse{
+		Valid:         true,
+		UserID:        claims.UserID,
+		RoleID:        claims.RoleID,
+		AccessLevelID: claims.AccessLevelID,
+		Email:         claims.Subject,
+		ExpiresAt:     expiresAt,
+	}, nil
 }
 
 func buildUserResponse(user *models.User) *structs_response.GetUserResponse {

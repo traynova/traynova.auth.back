@@ -3,7 +3,6 @@ package structs_request
 type RegisterRequest struct {
 	Email              string  `json:"email" binding:"required,email"`
 	FullName           string  `json:"name" binding:"required"`
-	Username           string  `json:"username" binding:"required"`
 	Prefix             string  `json:"prefix" binding:"required"`
 	Phone              string  `json:"phone" binding:"required"`
 	RoleID             uint    `json:"role_id" binding:"required"`

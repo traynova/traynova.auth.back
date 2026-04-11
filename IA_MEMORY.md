@@ -156,6 +156,7 @@
 ## 10. ✅ Cambios recientes implementados
 
 * Nuevo endpoint público para confirmación de email: `/public/auth/confirm?token=...`
+* Nuevo endpoint público para validación de token JWT: `/public/auth/validate` (usa header Authorization o query token)
 * Nuevo flujo de recuperación de contraseña:
   - `/public/auth/password/recovery`
   - `/public/auth/password/reset`

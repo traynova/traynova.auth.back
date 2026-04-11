@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strings"
 
 	"gestrym/src/common/utils"
 	"gestrym/src/core/auth/app"
@@ -76,6 +77,43 @@ func (a *AuthPublicController) Register() gin.HandlerFunc {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /public/auth/confirm [get]
+// @Summary Validar token JWT
+// @Description Verifica si el token de acceso es válido para usarlo.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param Authorization header string false "Bearer token"
+// @Param token query string false "Token JWT"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /public/auth/validate [get]
+func (a *AuthPublicController) ValidateToken() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			token = c.Query("token")
+		}
+		if token == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "token es requerido"})
+			return
+		}
+
+		if strings.HasPrefix(strings.ToLower(token), "bearer ") {
+			token = strings.TrimSpace(token[7:])
+		}
+
+		response, err := a.authService.ValidateToken(token)
+		if err != nil {
+			a.logger.Error("Error al validar token", err)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+}
+
 func (a *AuthPublicController) ConfirmEmail() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Query("token")

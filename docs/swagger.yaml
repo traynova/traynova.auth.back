@@ -91,8 +91,6 @@ definitions:
         type: string
       source_id:
         type: integer
-      username:
-        type: string
       workstation:
         type: string
     required:
@@ -103,7 +101,6 @@ definitions:
     - prefix
     - registration_source
     - role_id
-    - username
     type: object
   structs_request.UpdateUserRequest:
     properties:
@@ -568,14 +565,26 @@ paths:
     get:
       consumes:
       - application/json
-      description: Activa al usuario cuando el token de confirmación es válido
+      - application/json
+      description: |-
+        Activa al usuario cuando el token de confirmación es válido
+        Verifica si el token de acceso es válido para usarlo.
       parameters:
       - description: Token de confirmación
         in: query
         name: token
         required: true
         type: string
+      - description: Bearer token
+        in: header
+        name: Authorization
+        type: string
+      - description: Token JWT
+        in: query
+        name: token
+        type: string
       produces:
+      - application/json
       - application/json
       responses:
         "200":
@@ -588,13 +597,19 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties: true
             type: object
-      summary: Confirmar email de usuario
+      summary: Validar token JWT
       tags:
+      - Auth
       - Auth
   /public/auth/password/recovery:
     post:
@@ -700,6 +715,56 @@ paths:
             type: object
       summary: Registrar Coach o Gimnasio o Cliente
       tags:
+      - Auth
+  /public/auth/validate:
+    get:
+      consumes:
+      - application/json
+      - application/json
+      description: |-
+        Activa al usuario cuando el token de confirmación es válido
+        Verifica si el token de acceso es válido para usarlo.
+      parameters:
+      - description: Token de confirmación
+        in: query
+        name: token
+        required: true
+        type: string
+      - description: Bearer token
+        in: header
+        name: Authorization
+        type: string
+      - description: Token JWT
+        in: query
+        name: token
+        type: string
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Validar token JWT
+      tags:
+      - Auth
       - Auth
   /public/roles:
     get:

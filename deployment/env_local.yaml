@@ -5,15 +5,15 @@ TLS_KEY: "../deployment/certs/key.pem"
 GESTRYM_SERVER_ADDRESS: localhost:60188
 GOOGLE_CLIENT_ID: "your-google-client-id.apps.googleusercontent.com"
 JWT_KEY: "traynova"
-POSTGRES_DB_HOST: turntable.proxy.rlwy.net
-POSTGRES_DB_PORT: 31779
+POSTGRES_DB_HOST: metro.proxy.rlwy.net
+POSTGRES_DB_PORT: 57391
 POSTGRES_DB_USER: postgres
-POSTGRES_DB_PASSWORD: WgKDZtKzqBeAmpVzCsNwjZAKEFQOVEMv
+POSTGRES_DB_PASSWORD: idhwzkplhmeFYIbyHouyjZpboiqdfJbG
 POSTGRES_DB_NAME: postgres
 POSTGRES_DB_SSLMODE: disable
 
 GIN_MODE: debug
-
+JWT_EXPIRATION: 3600
 
 BASIC_AUTH_USERNAME: "trayuser"
 BASIC_AUTH_PASSWORD: "traypass"

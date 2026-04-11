@@ -650,17 +650,20 @@ const docTemplate = `{
         },
         "/public/auth/confirm": {
             "get": {
-                "description": "Activa al usuario cuando el token de confirmación es válido",
+                "description": "Activa al usuario cuando el token de confirmación es válido\nVerifica si el token de acceso es válido para usarlo.",
                 "consumes": [
+                    "application/json",
                     "application/json"
                 ],
                 "produces": [
+                    "application/json",
                     "application/json"
                 ],
                 "tags": [
+                    "Auth",
                     "Auth"
                 ],
-                "summary": "Confirmar email de usuario",
+                "summary": "Validar token JWT",
                 "parameters": [
                     {
                         "type": "string",
@@ -668,6 +671,18 @@ const docTemplate = `{
                         "name": "token",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token JWT",
+                        "name": "token",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -680,6 +695,13 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -834,6 +856,75 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/public/auth/validate": {
+            "get": {
+                "description": "Activa al usuario cuando el token de confirmación es válido\nVerifica si el token de acceso es válido para usarlo.",
+                "consumes": [
+                    "application/json",
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth",
+                    "Auth"
+                ],
+                "summary": "Validar token JWT",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de confirmación",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token JWT",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1120,8 +1211,7 @@ const docTemplate = `{
                 "phone",
                 "prefix",
                 "registration_source",
-                "role_id",
-                "username"
+                "role_id"
             ],
             "properties": {
                 "avatar_file_id": {
@@ -1173,9 +1263,6 @@ const docTemplate = `{
                 },
                 "source_id": {
                     "type": "integer"
-                },
-                "username": {
-                    "type": "string"
                 },
                 "workstation": {
                     "type": "string"
