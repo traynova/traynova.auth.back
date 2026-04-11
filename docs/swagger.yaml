@@ -30,22 +30,6 @@ definitions:
     - resource_id
     - role_id
     type: object
-  structs.CreateUserRequest:
-    properties:
-      email:
-        type: string
-      name:
-        type: string
-      phone:
-        type: string
-      role_id:
-        type: integer
-    required:
-    - email
-    - name
-    - phone
-    - role_id
-    type: object
   structs.CreateUserTokenTypeRequest:
     properties:
       type:
@@ -53,52 +37,49 @@ definitions:
     required:
     - type
     type: object
-  structs_auth.GoogleLoginRequest:
+  structs_request.RegisterRequest:
     properties:
-      id_token:
+      city:
         type: string
-    required:
-    - id_token
-    type: object
-  structs_auth.LoginRequest:
-    properties:
-      email:
+      country:
         type: string
-      password:
+      department:
         type: string
-    required:
-    - email
-    - password
-    type: object
-  structs_auth.LogoutRequest:
-    properties:
-      token:
-        type: string
-    required:
-    - token
-    type: object
-  structs_auth.RefreshRequest:
-    properties:
-      refresh_token:
-        type: string
-    required:
-    - refresh_token
-    type: object
-  structs_auth.RegisterRequest:
-    properties:
       email:
         type: string
       name:
         type: string
+      password:
+        type: string
       phone:
+        type: string
+      prefix:
+        type: string
+      referral_code:
+        type: string
+      registration_source:
+        enum:
+        - self
+        - gym
+        - trainer
         type: string
       role_id:
         type: integer
+      source_id:
+        type: integer
+      username:
+        type: string
+      workstation:
+        type: string
     required:
     - email
     - name
+    - password
     - phone
+    - prefix
+    - registration_source
     - role_id
+    - username
     type: object
   structs_roles.CreateRoleRequest:
     properties:
@@ -236,35 +217,6 @@ paths:
       summary: Crear una Acción (CRUD)
       tags:
       - Actions
-  /auth/validate:
-    get:
-      consumes:
-      - application/json
-      description: Permite testear la validez de un access token y extraer la metadata
-        de sesión real.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: id, email, name, role
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - ApiKeyAuth: []
-      summary: Validar Autenticación
-      tags:
-      - Users
   /permissions:
     post:
       consumes:
@@ -300,19 +252,52 @@ paths:
       summary: Crear Permiso
       tags:
       - Permissions
-  /private/auth/logout:
+  /private/auth/register:
     post:
       consumes:
       - application/json
-      description: Invalida el token JWT actual (o provisto) en la base de datos de
-        tokens activos.
+      description: Crea un nuevo usuario públicamente. Solo permite roles Cliente
+        (1) o Coach (2) o Gym (3).
       parameters:
-      - description: Token a revocar
+      - description: Datos del usuario
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/structs_auth.LogoutRequest'
+          $ref: '#/definitions/structs_request.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Registrar Coach o Gimnasio o Cliente
+      tags:
+      - Auth
+  /private/auth/relationships:
+    get:
+      consumes:
+      - application/json
+      description: Si el usuario es coach, devuelve clientes independientes y clientes
+        de gimnasio separados. Si el usuario es gym, devuelve entrenadores y sus clientes
+        de gimnasio.
       produces:
       - application/json
       responses:
@@ -326,27 +311,54 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Cerrar Sesión
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Obtener relaciones de clientes del entrenador o entrenadores del gimnasio
       tags:
       - Auth
-  /private/auth/refresh:
-    post:
+  /private/auth/users:
+    get:
       consumes:
       - application/json
-      description: Intercambia un refresh_token válido por un nuevo set de tokens
-        de acceso y refresco.
+      description: Obtiene una lista de todos los usuarios registrados en el sistema
       parameters:
-      - description: Refresh Token
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs_auth.RefreshRequest'
+      - description: Número de página
+        in: query
+        name: page
+        type: integer
+      - description: Tamaño de la página
+        in: query
+        name: page_size
+        type: integer
+      - description: Nombre del usuario
+        in: query
+        name: name
+        type: string
+      - description: DNI del usuario
+        in: query
+        name: dni
+        type: string
+      - description: email del usuario
+        in: query
+        name: email
+        type: string
+      - description: ID del rol del usuario
+        in: query
+        name: role_id
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: 'access_token: xxx, refresh_token: yyy'
+          description: OK
           schema:
             additionalProperties: true
             type: object
@@ -355,12 +367,17 @@ paths:
           schema:
             additionalProperties: true
             type: object
-        "401":
-          description: Unauthorized
+        "403":
+          description: Forbidden
           schema:
             additionalProperties: true
             type: object
-      summary: Refrescar Token
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Consultar todos los usuarios registrados
       tags:
       - Auth
   /private/roles/{id}:
@@ -396,7 +413,7 @@ paths:
             additionalProperties: true
             type: object
       security:
-      - ApiKeyAuth: []
+      - BasicAuth: []
       summary: Deshabilitar Rol
       tags:
       - Roles
@@ -440,117 +457,10 @@ paths:
             additionalProperties: true
             type: object
       security:
-      - ApiKeyAuth: []
+      - BasicAuth: []
       summary: Editar Rol
       tags:
       - Roles
-  /public/auth/google:
-    post:
-      consumes:
-      - application/json
-      description: Inicia sesión utilizando un id_token provisto por Google. Si el
-        usuario no existe, lo registra como Cliente (1).
-      parameters:
-      - description: Token de Google
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs_auth.GoogleLoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'access_token: xxx, refresh_token: yyy'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Login con Google
-      tags:
-      - Auth
-  /public/auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Realiza el login de un usuario registrado usando email y password,
-        y devuelve un JWT.
-      parameters:
-      - description: Credenciales de login
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs_auth.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'access_token: xxx, refresh_token: yyy'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Iniciar Sesión Tradicional
-      tags:
-      - Auth
-  /public/auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Crea un nuevo usuario públicamente. Solo permite roles Cliente
-        (1) o Coach (2).
-      parameters:
-      - description: Datos del usuario
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs_auth.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Registrar Cliente o Coach
-      tags:
-      - Auth
   /public/roles:
     get:
       description: Obtiene todos los roles disponibles.
@@ -669,52 +579,6 @@ paths:
       summary: Crear Tipo de Token (CRUD)
       tags:
       - Token Types
-  /users/register:
-    post:
-      consumes:
-      - application/json
-      description: Permite a perfiles elevados (Admin, Gym, Coach) registrar usuarios
-        como clientes o sub-perfiles sin necesidad de auto-registro.
-      parameters:
-      - description: Datos del usuario
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs.CreateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: message, id
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - ApiKeyAuth: []
-      summary: Crear Usuario Interno
-      tags:
-      - Users
 securityDefinitions:
   ApiKeyAuth:
     in: header

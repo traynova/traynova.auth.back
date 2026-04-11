@@ -19,6 +19,12 @@ import (
 	roleCtrl "gestrym/src/core/roles/infra/controller"
 	roleRepo "gestrym/src/core/roles/infra/repository"
 
+	authApp "gestrym/src/core/auth/app"
+	authCtrl "gestrym/src/core/auth/infra/controller"
+	authRepo "gestrym/src/core/auth/infra/repository"
+	jwt_service "gestrym/src/core/jwt/app"
+	jwtRepo "gestrym/src/core/jwt/infra"
+
 	permApp "gestrym/src/core/permissions/app"
 	permCtrl "gestrym/src/core/permissions/infra/controller"
 	permRepo "gestrym/src/core/permissions/infra/repository"
@@ -96,6 +102,16 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	accessLevelService := levelApp.NewAccessLevelService(accessLevelRepository)
 	tokenTypeService := tokenTypeApp.NewUserTokenTypeService(tokenTypeRepository)
 
+	// Auth services
+	authRepository := authRepo.NewAuthRepository(db)
+	refreshTokenRepository := jwtRepo.NewRefreshTokenRepository(db)
+	userTokenRepository := jwtRepo.NewUserTokenRepository(db)
+	jwtService, err := jwt_service.NewJWTService(refreshTokenRepository, userTokenRepository)
+	if err != nil {
+		routesInstance.logger.Fatal("error al inicializar el servicio JWT: %v", err)
+	}
+	authService := authApp.NewAuthService(authRepository, jwtService)
+
 	// Controllers
 	rolePrivateController := roleCtrl.NewRolePrivateController(roleService)
 	rolePublicController := roleCtrl.NewRolePublicController(roleService)
@@ -103,6 +119,8 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	actionController := actionCtrl.NewActionController(actionService)
 	accessLevelController := levelCtrl.NewAccessLevelController(accessLevelService)
 	tokenTypeController := tokenTypeCtrl.NewUserTokenTypeController(tokenTypeService)
+	authPrivateController := authCtrl.NewAuthPrivateController(authService, r.logger)
+	authPublicController := authCtrl.NewAuthPublicController(authService, r.logger)
 
 	// Add server group
 	r.serverGroup = serverInstance.Group(docs.SwaggerInfo.BasePath)
@@ -119,8 +137,8 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	r.protectedGroup.Use(middleware.SetupApiKeyMiddleware())
 
 	// Add routes to groups
-	r.addPublicRoutes(rolePublicController)
-	r.addPrivateRoutes(rolePrivateController, permissionController, actionController, accessLevelController, tokenTypeController)
+	r.addPublicRoutes(rolePublicController, authPublicController)
+	r.addPrivateRoutes(rolePrivateController, permissionController, actionController, accessLevelController, tokenTypeController, authPrivateController)
 	r.addInternalRoutes()
 	r.addProtectedRoutes()
 
@@ -151,9 +169,13 @@ func (r *routesDefinition) addDefaultRoutes(serverInstance *gin.Engine) {
 	})
 }
 
-func (r *routesDefinition) addPublicRoutes(rolePublicController *roleCtrl.RolePublicController) {
+func (r *routesDefinition) addPublicRoutes(
+	rolePublicController *roleCtrl.RolePublicController,
+	authPublicController *authCtrl.AuthPublicController,
+) {
 	r.publicGroup.GET("/roles", rolePublicController.GetRoles)
 	r.publicGroup.POST("/roles", rolePublicController.CreateRole)
+	r.publicGroup.POST("/auth/register", authPublicController.Register())
 }
 
 func (r *routesDefinition) addPrivateRoutes(
@@ -162,6 +184,7 @@ func (r *routesDefinition) addPrivateRoutes(
 	actionController *actionCtrl.ActionController,
 	accessLevelController *levelCtrl.AccessLevelController,
 	tokenTypeController *tokenTypeCtrl.UserTokenTypeController,
+	authPrivateController *authCtrl.AuthPrivateController,
 ) {
 
 	r.privateGroup.PUT("/roles/:id", rolePrivateController.UpdateRole)
@@ -178,6 +201,10 @@ func (r *routesDefinition) addPrivateRoutes(
 
 	r.privateGroup.POST("/token_types", adminAuth, tokenTypeController.CreateUserTokenType)
 	r.privateGroup.GET("/token_types", adminAuth, tokenTypeController.GetUserTokenTypes)
+
+	r.privateGroup.POST("/auth/register", authPrivateController.Register())
+	r.privateGroup.GET("/auth/users", authPrivateController.GetUsers())
+	r.privateGroup.GET("/auth/relationships", authPrivateController.GetClientRelationships())
 }
 
 func (r *routesDefinition) addInternalRoutes() {

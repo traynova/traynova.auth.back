@@ -1,8 +1,13 @@
 package controller
 
 import (
+	"net/http"
+
 	"gestrym/src/common/utils"
 	"gestrym/src/core/auth/app"
+	structs_request "gestrym/src/core/auth/domain/structs/request"
+
+	"github.com/gin-gonic/gin"
 )
 
 type AuthPublicController struct {
@@ -14,6 +19,27 @@ func NewAuthPublicController(as app.IAuthService, logger utils.ILogger) *AuthPub
 	return &AuthPublicController{
 		authService: as,
 		logger:      logger,
+	}
+}
+
+func (a *AuthPublicController) Register() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		createUserRequest := &structs_request.RegisterRequest{}
+
+		if err := c.ShouldBindJSON(createUserRequest); err != nil {
+			a.logger.Error("Error while binding JSON", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		response, err := a.authService.RegisterUser(*createUserRequest, 0)
+		if err != nil {
+			a.logger.Error("Error while creating user", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"response": response})
 	}
 }
 

@@ -184,49 +184,6 @@
                 }
             }
         },
-        "/auth/validate": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Permite testear la validez de un access token y extraer la metadata de sesión real.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Validar Autenticación",
-                "responses": {
-                    "200": {
-                        "description": "id, email, name, role",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/permissions": {
             "post": {
                 "security": [
@@ -281,9 +238,9 @@
                 }
             }
         },
-        "/private/auth/logout": {
+        "/private/auth/register": {
             "post": {
-                "description": "Invalida el token JWT actual (o provisto) en la base de datos de tokens activos.",
+                "description": "Crea un nuevo usuario públicamente. Solo permite roles Cliente (1) o Coach (2) o Gym (3).",
                 "consumes": [
                     "application/json"
                 ],
@@ -293,16 +250,144 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Cerrar Sesión",
+                "summary": "Registrar Coach o Gimnasio o Cliente",
                 "parameters": [
                     {
-                        "description": "Token a revocar",
+                        "description": "Datos del usuario",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/structs_auth.LogoutRequest"
+                            "$ref": "#/definitions/structs_request.RegisterRequest"
                         }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/private/auth/relationships": {
+            "get": {
+                "description": "Si el usuario es coach, devuelve clientes independientes y clientes de gimnasio separados. Si el usuario es gym, devuelve entrenadores y sus clientes de gimnasio.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Obtener relaciones de clientes del entrenador o entrenadores del gimnasio",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/private/auth/users": {
+            "get": {
+                "description": "Obtiene una lista de todos los usuarios registrados en el sistema",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Consultar todos los usuarios registrados",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número de página",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Tamaño de la página",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Nombre del usuario",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "DNI del usuario",
+                        "name": "dni",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "email del usuario",
+                        "name": "email",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID del rol del usuario",
+                        "name": "role_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -319,51 +404,16 @@
                             "type": "object",
                             "additionalProperties": true
                         }
-                    }
-                }
-            }
-        },
-        "/private/auth/refresh": {
-            "post": {
-                "description": "Intercambia un refresh_token válido por un nuevo set de tokens de acceso y refresco.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Refrescar Token",
-                "parameters": [
-                    {
-                        "description": "Refresh Token",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/structs_auth.RefreshRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "access_token: xxx, refresh_token: yyy",
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -376,7 +426,7 @@
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BasicAuth": []
                     }
                 ],
                 "description": "Actualiza los datos de un rol existente.",
@@ -442,7 +492,7 @@
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BasicAuth": []
                     }
                 ],
                 "description": "Marca un rol como inactivo en lugar de eliminarlo físicamente.",
@@ -479,160 +529,6 @@
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/public/auth/google": {
-            "post": {
-                "description": "Inicia sesión utilizando un id_token provisto por Google. Si el usuario no existe, lo registra como Cliente (1).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Login con Google",
-                "parameters": [
-                    {
-                        "description": "Token de Google",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/structs_auth.GoogleLoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "access_token: xxx, refresh_token: yyy",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/public/auth/login": {
-            "post": {
-                "description": "Realiza el login de un usuario registrado usando email y password, y devuelve un JWT.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Iniciar Sesión Tradicional",
-                "parameters": [
-                    {
-                        "description": "Credenciales de login",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/structs_auth.LoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "access_token: xxx, refresh_token: yyy",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/public/auth/register": {
-            "post": {
-                "description": "Crea un nuevo usuario públicamente. Solo permite roles Cliente (1) o Coach (2).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Registrar Cliente o Coach",
-                "parameters": [
-                    {
-                        "description": "Datos del usuario",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/structs_auth.RegisterRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -824,74 +720,6 @@
                     }
                 }
             }
-        },
-        "/users/register": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Permite a perfiles elevados (Admin, Gym, Coach) registrar usuarios como clientes o sub-perfiles sin necesidad de auto-registro.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Crear Usuario Interno",
-                "parameters": [
-                    {
-                        "description": "Datos del usuario",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/structs.CreateUserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "message, id",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -940,29 +768,6 @@
                 }
             }
         },
-        "structs.CreateUserRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "name",
-                "phone",
-                "role_id"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "role_id": {
-                    "type": "integer"
-                }
-            }
-        },
         "structs.CreateUserTokenTypeRequest": {
             "type": "object",
             "required": [
@@ -974,74 +779,65 @@
                 }
             }
         },
-        "structs_auth.GoogleLoginRequest": {
-            "type": "object",
-            "required": [
-                "id_token"
-            ],
-            "properties": {
-                "id_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "structs_auth.LoginRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "structs_auth.LogoutRequest": {
-            "type": "object",
-            "required": [
-                "token"
-            ],
-            "properties": {
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "structs_auth.RefreshRequest": {
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "structs_auth.RegisterRequest": {
+        "structs_request.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
                 "name",
+                "password",
                 "phone",
-                "role_id"
+                "prefix",
+                "registration_source",
+                "role_id",
+                "username"
             ],
             "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "department": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
+                "password": {
+                    "type": "string"
+                },
                 "phone": {
                     "type": "string"
                 },
+                "prefix": {
+                    "type": "string"
+                },
+                "referral_code": {
+                    "type": "string"
+                },
+                "registration_source": {
+                    "type": "string",
+                    "enum": [
+                        "self",
+                        "gym",
+                        "trainer"
+                    ]
+                },
                 "role_id": {
                     "type": "integer"
+                },
+                "source_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "workstation": {
+                    "type": "string"
                 }
             }
         },
