@@ -37,8 +37,28 @@ definitions:
     required:
     - type
     type: object
+  structs_request.PasswordRecoveryRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  structs_request.PasswordResetRequest:
+    properties:
+      password:
+        minLength: 8
+        type: string
+      token:
+        type: string
+    required:
+    - password
+    - token
+    type: object
   structs_request.RegisterRequest:
     properties:
+      avatar_file_id:
+        type: integer
       city:
         type: string
       country:
@@ -55,6 +75,8 @@ definitions:
         type: string
       prefix:
         type: string
+      primary_color:
+        type: string
       referral_code:
         type: string
       registration_source:
@@ -65,6 +87,8 @@ definitions:
         type: string
       role_id:
         type: integer
+      secondary_color:
+        type: string
       source_id:
         type: integer
       username:
@@ -80,6 +104,19 @@ definitions:
     - registration_source
     - role_id
     - username
+    type: object
+  structs_request.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      prefix:
+        type: string
     type: object
   structs_roles.CreateRoleRequest:
     properties:
@@ -252,45 +289,6 @@ paths:
       summary: Crear Permiso
       tags:
       - Permissions
-  /private/auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Crea un nuevo usuario públicamente. Solo permite roles Cliente
-        (1) o Coach (2) o Gym (3).
-      parameters:
-      - description: Datos del usuario
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs_request.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Registrar Coach o Gimnasio o Cliente
-      tags:
-      - Auth
   /private/auth/relationships:
     get:
       consumes:
@@ -380,6 +378,111 @@ paths:
       summary: Consultar todos los usuarios registrados
       tags:
       - Auth
+  /private/auth/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Desactiva el usuario marcando is_active en falso
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Eliminar (soft delete) usuario
+      tags:
+      - Auth
+    get:
+      consumes:
+      - application/json
+      description: Devuelve el usuario con el ID especificado
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Obtener usuario por ID
+      tags:
+      - Auth
+    put:
+      consumes:
+      - application/json
+      description: Modifica los campos del usuario especificado
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_request.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Actualizar información de usuario
+      tags:
+      - Auth
   /private/roles/{id}:
     delete:
       description: Marca un rol como inactivo en lugar de eliminarlo físicamente.
@@ -461,6 +564,143 @@ paths:
       summary: Editar Rol
       tags:
       - Roles
+  /public/auth/confirm:
+    get:
+      consumes:
+      - application/json
+      description: Activa al usuario cuando el token de confirmación es válido
+      parameters:
+      - description: Token de confirmación
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Confirmar email de usuario
+      tags:
+      - Auth
+  /public/auth/password/recovery:
+    post:
+      consumes:
+      - application/json
+      description: Envía un enlace de recuperación al email del usuario
+      parameters:
+      - description: Email del usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_request.PasswordRecoveryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Solicitar recuperación de contraseña
+      tags:
+      - Auth
+  /public/auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: Cambia la contraseña usando el token de recuperación
+      parameters:
+      - description: Token y nueva contraseña
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_request.PasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Restablecer contraseña
+      tags:
+      - Auth
+  /public/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo usuario públicamente. Solo permite roles Cliente
+        (1) o Coach (2) o Gym (3).
+      parameters:
+      - description: Datos del usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_request.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Registrar Coach o Gimnasio o Cliente
+      tags:
+      - Auth
   /public/roles:
     get:
       description: Obtiene todos los roles disponibles.

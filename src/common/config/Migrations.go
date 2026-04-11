@@ -23,6 +23,7 @@ func MigrateDB() (IDatabaseConnection, error) {
 		&models.UserToken{},
 		&models.RefreshToken{},
 		&models.TrainerProfile{},
+		&models.GymProfile{},
 		&models.TrainerClient{},
 		&models.GymClient{},
 	)

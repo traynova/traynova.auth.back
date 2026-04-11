@@ -23,6 +23,12 @@ import (
 type IAuthService interface {
 	RegisterUser(req structs_request.RegisterRequest, userId uint) (*structs_response.RegisterResponse, error)
 	GetAllUsers(page int, pageSize int, name string, dni string, email string, role_id uint) (shared.ResponsePaginate, error)
+	GetUserByID(userID uint) (*structs_response.GetUserResponse, error)
+	UpdateUser(userID uint, req structs_request.UpdateUserRequest) (*structs_response.GetUserResponse, error)
+	DeleteUser(userID uint) error
+	ActivateUser(token string) (*structs_response.GetUserResponse, error)
+	RequestPasswordRecovery(email string) error
+	ResetPassword(req structs_request.PasswordResetRequest) (*structs_response.GetUserResponse, error)
 	GetClientsByUser(userID uint, roleID uint) (interface{}, error)
 }
 
@@ -54,6 +60,19 @@ func sendConfirmationEmail(user *models.User, name, token string) error {
 	}
 	jsonPayload, _ := json.Marshal(payload)
 	http.Post("http://localhost:8443/traynova-notification/public/send-confirmation", "application/json", bytes.NewBuffer(jsonPayload))
+
+	return nil
+}
+
+func sendPasswordRecoveryEmail(user *models.User, token string) error {
+	payload := map[string]interface{}{
+		"user_id":       user.ID,
+		"email":         user.Email,
+		"reset_token":   token,
+		"dashboard_url": "http://localhost:3000",
+	}
+	jsonPayload, _ := json.Marshal(payload)
+	http.Post("http://localhost:8443/traynova-notification/public/send-password-recovery", "application/json", bytes.NewBuffer(jsonPayload))
 
 	return nil
 }
@@ -168,7 +187,7 @@ func (s *authService) attachRelationship(req structs_request.RegisterRequest, us
 			if req.SourceID == nil {
 				return errors.New("source_id es requerido para registrar un entrenador desde un gimnasio")
 			}
-			return s.createOrUpdateTrainerProfile(user.ID, req.SourceID)
+			return s.createOrUpdateTrainerProfile(user.ID, req.SourceID, req)
 		}
 
 		if req.RoleID == middleware.RoleCliente {
@@ -188,20 +207,69 @@ func (s *authService) attachRelationship(req structs_request.RegisterRequest, us
 
 	case structs_request.RegistrationSourceSelf:
 		if req.RoleID == middleware.RoleCoach {
-			return s.createOrUpdateTrainerProfile(user.ID, nil)
+			return s.createOrUpdateTrainerProfile(user.ID, nil, req)
+		}
+		if req.RoleID == middleware.RoleGym {
+			return s.createOrUpdateGymProfile(user.ID, req)
 		}
 	}
 
 	return nil
 }
 
-func (s *authService) createOrUpdateTrainerProfile(userID uint, gymUserID *uint) error {
+func (s *authService) createOrUpdateGymProfile(userID uint, req structs_request.RegisterRequest) error {
+	if req.City == nil || req.Department == nil || req.Country == nil {
+		return errors.New("city, department y country son requeridos para registrar un gimnasio")
+	}
+
+	gymProfile, err := s.userRepo.GetGymProfileByUserID(userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			gymProfile = &models.GymProfile{
+				UserID:         userID,
+				City:           *req.City,
+				Department:     *req.Department,
+				Country:        *req.Country,
+				Workstation:    req.Workstation,
+				PrimaryColor:   req.PrimaryColor,
+				SecondaryColor: req.SecondaryColor,
+				ReferralCode:   req.ReferralCode,
+			}
+			_, err = s.userRepo.CreateGymProfile(gymProfile)
+			return err
+		}
+		return err
+	}
+
+	if req.City != nil {
+		gymProfile.City = *req.City
+	}
+	if req.Department != nil {
+		gymProfile.Department = *req.Department
+	}
+	if req.Country != nil {
+		gymProfile.Country = *req.Country
+	}
+	gymProfile.Workstation = req.Workstation
+	gymProfile.PrimaryColor = req.PrimaryColor
+	gymProfile.SecondaryColor = req.SecondaryColor
+	gymProfile.ReferralCode = req.ReferralCode
+
+	_, err = s.userRepo.UpdateGymProfile(gymProfile)
+	return err
+}
+
+func (s *authService) createOrUpdateTrainerProfile(userID uint, gymUserID *uint, req structs_request.RegisterRequest) error {
 	trainerProfile, err := s.userRepo.GetTrainerProfileByUserIDAndGymID(userID, gymUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			trainerProfile = &models.TrainerProfile{
-				UserID: userID,
-				GimID:  gymUserID,
+				UserID:         userID,
+				GimID:          gymUserID,
+				PrimaryColor:   req.PrimaryColor,
+				SecondaryColor: req.SecondaryColor,
+				FilesID:        req.AvatarFileID,
+				ReferralCode:   req.ReferralCode,
 			}
 			_, err = s.userRepo.CreateTrainerProfile(trainerProfile)
 			return err
@@ -210,6 +278,17 @@ func (s *authService) createOrUpdateTrainerProfile(userID uint, gymUserID *uint)
 	}
 
 	trainerProfile.GimID = gymUserID
+	if req.PrimaryColor != nil {
+		trainerProfile.PrimaryColor = req.PrimaryColor
+	}
+	if req.SecondaryColor != nil {
+		trainerProfile.SecondaryColor = req.SecondaryColor
+	}
+	if req.AvatarFileID != nil {
+		trainerProfile.FilesID = req.AvatarFileID
+	}
+	trainerProfile.ReferralCode = req.ReferralCode
+
 	_, err = s.userRepo.UpdateTrainerProfile(trainerProfile)
 	return err
 }
@@ -293,6 +372,177 @@ func (s *authService) GetAllUsers(page int, pageSize int, name string, dni strin
 		Total:    int(total),
 		Results:  userList,
 	}, nil
+}
+
+func (s *authService) GetUserByID(userID uint) (*structs_response.GetUserResponse, error) {
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildUserResponse(user), nil
+}
+
+func (s *authService) UpdateUser(userID uint, req structs_request.UpdateUserRequest) (*structs_response.GetUserResponse, error) {
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Email != nil && *req.Email != user.Email {
+		existing, err := s.userRepo.ValidateEmail(*req.Email)
+		if err == nil && existing != nil && existing.ID != 0 && existing.ID != userID {
+			return nil, errors.New("ya existe un usuario con ese email")
+		}
+		user.Email = *req.Email
+	}
+
+	if req.FullName != nil {
+		user.FullName = *req.FullName
+	}
+	if req.Prefix != nil {
+		user.Prefix = *req.Prefix
+	}
+	if req.Phone != nil {
+		user.Phone = *req.Phone
+	}
+	if req.Password != nil && *req.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, errors.New("error al hashear la contraseña")
+		}
+		user.Password = string(hashedPassword)
+	}
+
+	updatedUser, err := s.userRepo.UpdateUser(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildUserResponse(updatedUser), nil
+}
+
+func (s *authService) DeleteUser(userID uint) error {
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	user.IsActive = false
+	_, err = s.userRepo.UpdateUser(user)
+	return err
+}
+
+func (s *authService) ActivateUser(token string) (*structs_response.GetUserResponse, error) {
+	if err := s.jwt_app.ChecUserTokenUsed(token); err != nil {
+		return nil, errors.New("token de activación inválido o no registrado")
+	}
+
+	claims, err := s.jwt_app.ValidateJwtToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepo.GetUserByID(claims.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	user.IsActive = true
+	user.EmailConfirmed = true
+	updatedUser, err := s.userRepo.UpdateUser(user)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.jwt_app.DeleteUserToken(token); err != nil {
+		return nil, err
+	}
+
+	return buildUserResponse(updatedUser), nil
+}
+
+func (s *authService) RequestPasswordRecovery(email string) error {
+	user, err := s.userRepo.ValidateEmail(email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("usuario no encontrado")
+		}
+		return err
+	}
+
+	token, err := s.jwt_app.GenerateJwtToken(jwt_requests.GenerateJwtTokenRequest{
+		UserID:        user.ID,
+		RoleID:        user.RoleID,
+		AccessLevelID: 1,
+		Email:         user.Email,
+	}, nil)
+	if err != nil {
+		return err
+	}
+
+	userToken := models.UserToken{
+		Token:           token,
+		UserTokenTypeID: 2,
+		UserID:          user.ID,
+	}
+
+	if err := s.jwt_app.RegisterToken(userToken); err != nil {
+		return err
+	}
+
+	if err := sendPasswordRecoveryEmail(user, token); err != nil {
+		return errors.New("error enviando email de recuperación")
+	}
+
+	return nil
+}
+
+func (s *authService) ResetPassword(req structs_request.PasswordResetRequest) (*structs_response.GetUserResponse, error) {
+	if err := s.jwt_app.ChecUserTokenUsed(req.Token); err != nil {
+		return nil, errors.New("token de recuperación inválido o no registrado")
+	}
+
+	claims, err := s.jwt_app.ValidateJwtToken(req.Token)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepo.GetUserByID(claims.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, errors.New("error al hashear la contraseña")
+	}
+
+	user.Password = string(hashedPassword)
+	updatedUser, err := s.userRepo.UpdateUser(user)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.jwt_app.DeleteUserToken(req.Token); err != nil {
+		return nil, err
+	}
+
+	return buildUserResponse(updatedUser), nil
+}
+
+func buildUserResponse(user *models.User) *structs_response.GetUserResponse {
+	return &structs_response.GetUserResponse{
+		ID:             user.ID,
+		Email:          user.Email,
+		Name:           user.FullName,
+		Phone:          user.Phone,
+		Prefix:         user.Prefix,
+		RoleID:         user.RoleID,
+		RoleName:       user.Role.Name,
+		IsActive:       user.IsActive,
+		EmailConfirmed: user.EmailConfirmed,
+	}
 }
 
 func (s *authService) GetClientsByUser(userID uint, roleID uint) (interface{}, error) {

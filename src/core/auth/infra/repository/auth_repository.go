@@ -43,6 +43,21 @@ func (a *authRepository) CreateUser(user *models.User) (*models.User, error) {
 	return user, nil
 }
 
+func (a *authRepository) UpdateUser(user *models.User) (*models.User, error) {
+	if err := a.db.Model(&models.User{}).Where("id = ?", user.ID).Updates(user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (a *authRepository) GetUserByID(userID uint) (*models.User, error) {
+	var user models.User
+	if err := a.db.Preload("Role").Where("id = ?", userID).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (a *authRepository) ValidateCoachGymAssociation(coachId uint) (*models.TrainerProfile, error) {
 	var association models.TrainerProfile
 	err := a.db.Where("user_id = ?", coachId).First(&association).Error
@@ -102,6 +117,28 @@ func (a *authRepository) UpdateTrainerProfile(profile *models.TrainerProfile) (*
 		return nil, err
 	}
 	return profile, nil
+}
+
+func (a *authRepository) CreateGymProfile(profile *models.GymProfile) (*models.GymProfile, error) {
+	if err := a.db.Create(profile).Error; err != nil {
+		return nil, err
+	}
+	return profile, nil
+}
+
+func (a *authRepository) UpdateGymProfile(profile *models.GymProfile) (*models.GymProfile, error) {
+	if err := a.db.Save(profile).Error; err != nil {
+		return nil, err
+	}
+	return profile, nil
+}
+
+func (a *authRepository) GetGymProfileByUserID(userID uint) (*models.GymProfile, error) {
+	var profile models.GymProfile
+	if err := a.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+		return nil, err
+	}
+	return &profile, nil
 }
 
 func (a *authRepository) GetTrainerProfilesByUserID(userID uint) ([]models.TrainerProfile, error) {

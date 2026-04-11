@@ -7,15 +7,14 @@ type TrainerProfile struct {
 
 	PrimaryColor   *string `json:"primary_color"`
 	SecondaryColor *string `json:"secondary_color"`
+	ReferralCode   *string `gorm:"type:varchar(100)" json:"referral_code"`
 
-	ReferredID *uint `json:"referred_id"`
-	UserID     uint  `json:"user_id"`
-	FilesID    *uint `json:"files_id"`
-	GimID      *uint `json:"gim_id"`
+	UserID  uint  `json:"user_id"`
+	FilesID *uint `json:"files_id"`
+	GimID   *uint `json:"gim_id"`
 
-	Referral       *Referral       `gorm:"foreignKey:ReferredID" json:"referral"`
 	User           User            `gorm:"foreignKey:UserID" json:"user"`
 	Files          *Files          `gorm:"foreignKey:FilesID" json:"files"`
-	GymProfile     *GymProfile     `gorm:"foreignKey:GimID" json:"gym_profile"`
+	GymProfile     *GymProfile     `gorm:"foreignKey:GimID;references:UserID" json:"gym_profile"`
 	TrainerClients []TrainerClient `gorm:"foreignKey:TrainerProfileID" json:"trainer_clients"`
 }

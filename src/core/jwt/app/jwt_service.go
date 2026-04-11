@@ -25,6 +25,9 @@ var (
 type IJWTService interface {
 	GenerateJwtToken(request jwt_requests.GenerateJwtTokenRequest, duration *int) (string, error)
 	RegisterToken(token models.UserToken) error
+	ValidateJwtToken(tokenString string) (*jwt_structs.CustomClaims, error)
+	ChecUserTokenUsed(token string) error
+	DeleteUserToken(token string) error
 }
 
 type jwtService struct {

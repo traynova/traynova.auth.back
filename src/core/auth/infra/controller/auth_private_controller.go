@@ -22,50 +22,6 @@ func NewAuthPrivateController(as app.IAuthService, logger utils.ILogger) *AuthPr
 	}
 }
 
-// @Summary Registrar Coach o Gimnasio o Cliente
-// @Description Crea un nuevo usuario públicamente. Solo permite roles Cliente (1) o Coach (2) o Gym (3).
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body structs_request.RegisterRequest true "Datos del usuario"
-// @Success 201 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /private/auth/register [post]
-func (a *AuthPrivateController) Register() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		createUserRequest := &structs_request.RegisterRequest{}
-
-		if err := c.ShouldBindJSON(&createUserRequest); err != nil {
-			a.logger.Error("Error while binding JSON", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		userIDInterface, exists := c.Get("user_id")
-		if !exists {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo obtener el ID del usuario"})
-			return
-		}
-
-		userId, ok := userIDInterface.(uint)
-		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "ID del usuario en formato incorrecto"})
-			return
-		}
-
-		response, err := a.authService.RegisterUser(*createUserRequest, userId)
-		if err != nil {
-			a.logger.Error("Error while creating user", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"response": response})
-	}
-}
-
 // @Summary Consultar todos los usuarios registrados
 // @Description Obtiene una lista de todos los usuarios registrados en el sistema
 // @Tags Auth
@@ -108,6 +64,100 @@ func (a *AuthPrivateController) GetUsers() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, response)
+	}
+}
+
+// @Summary Obtener usuario por ID
+// @Description Devuelve el usuario con el ID especificado
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param id path int true "ID del usuario"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /private/auth/users/{id} [get]
+func (a *AuthPrivateController) GetUserByID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idParam := c.Param("id")
+		userID, err := strconv.ParseUint(idParam, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "ID de usuario inválido"})
+			return
+		}
+
+		response, err := a.authService.GetUserByID(uint(userID))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+}
+
+// @Summary Actualizar información de usuario
+// @Description Modifica los campos del usuario especificado
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param id path int true "ID del usuario"
+// @Param request body structs_request.UpdateUserRequest true "Datos a actualizar"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /private/auth/users/{id} [put]
+func (a *AuthPrivateController) UpdateUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idParam := c.Param("id")
+		userID, err := strconv.ParseUint(idParam, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "ID de usuario inválido"})
+			return
+		}
+
+		var req structs_request.UpdateUserRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		response, err := a.authService.UpdateUser(uint(userID), req)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+}
+
+// @Summary Eliminar (soft delete) usuario
+// @Description Desactiva el usuario marcando is_active en falso
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param id path int true "ID del usuario"
+// @Success 204 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /private/auth/users/{id} [delete]
+func (a *AuthPrivateController) DeleteUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idParam := c.Param("id")
+		userID, err := strconv.ParseUint(idParam, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "ID de usuario inválido"})
+			return
+		}
+
+		if err := a.authService.DeleteUser(uint(userID)); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.Status(http.StatusNoContent)
 	}
 }
 

@@ -176,6 +176,9 @@ func (r *routesDefinition) addPublicRoutes(
 	r.publicGroup.GET("/roles", rolePublicController.GetRoles)
 	r.publicGroup.POST("/roles", rolePublicController.CreateRole)
 	r.publicGroup.POST("/auth/register", authPublicController.Register())
+	r.publicGroup.GET("/auth/confirm", authPublicController.ConfirmEmail())
+	r.publicGroup.POST("/auth/password/recovery", authPublicController.RequestPasswordRecovery())
+	r.publicGroup.POST("/auth/password/reset", authPublicController.ResetPassword())
 }
 
 func (r *routesDefinition) addPrivateRoutes(
@@ -202,8 +205,10 @@ func (r *routesDefinition) addPrivateRoutes(
 	r.privateGroup.POST("/token_types", adminAuth, tokenTypeController.CreateUserTokenType)
 	r.privateGroup.GET("/token_types", adminAuth, tokenTypeController.GetUserTokenTypes)
 
-	r.privateGroup.POST("/auth/register", authPrivateController.Register())
 	r.privateGroup.GET("/auth/users", authPrivateController.GetUsers())
+	r.privateGroup.GET("/auth/users/:id", authPrivateController.GetUserByID())
+	r.privateGroup.PUT("/auth/users/:id", authPrivateController.UpdateUser())
+	r.privateGroup.DELETE("/auth/users/:id", authPrivateController.DeleteUser())
 	r.privateGroup.GET("/auth/relationships", authPrivateController.GetClientRelationships())
 }
 

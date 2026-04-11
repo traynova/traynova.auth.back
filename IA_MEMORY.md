@@ -84,6 +84,9 @@
   - Se crean asociaciones de negocio: `TrainerProfile` para entrenadores de gym, `TrainerClient` para clientes de entrenador y `GymClient` para clientes registrados por un gym.
   - Se genera JWT de activación y se registra como `UserToken` tipo activación.
   - Se envía solicitud HTTP a un servicio de notificaciones externo para confirmar email.
+  - Existe un endpoint de confirmación de email que recibe el token de activación y activa al usuario.
+  - Se agregó soporte para obtener usuario por ID, modificar datos de usuario y soft delete de usuario (`is_active = false`).
+  - Se agregó flujo de recuperación de contraseña: solicitud de recuperación por email y restablecimiento con token.
 
 * Login
   - La lógica de login tradicional y login con Google está presente en el controlador público pero actualmente está comentada.
@@ -115,7 +118,9 @@
   - Registro de rutas en `common/routes/ServerRoutesDefinition.go` y separación en grupos `public`, `private`, `protected`.
   - JWT HMAC centralizado a través de `JWT_KEY` y middleware de validación.
   - Almacenamiento de tokens y tipos de token como entidad de dominio.
-  - Email de confirmación mediante llamada HTTP a un servicio externo.* Registro de usuarios con origen (`self`, `gym`, `trainer`) y creación de relaciones de negocio en los repositorios.
+  - Email de confirmación mediante llamada HTTP a un servicio externo.
+  - Registro de usuarios con origen (`self`, `gym`, `trainer`) y creación de relaciones de negocio en los repositorios.
+
 * Librerías usadas
   - `gin-gonic/gin` para HTTP.
   - `gorm.io/gorm` para ORM/Postgres.
@@ -147,3 +152,32 @@
 * Agregar tests de integración para rutas de autenticación y middleware JWT.
 * Añadir validaciones en los request DTOs y reglas de negocio de roles de registro.
 * Documentar claramente el contrato de los claims JWT y los context keys usados (`user_id`, `role_id`, `access_level_id`).
+
+## 10. ✅ Cambios recientes implementados
+
+* Nuevo endpoint público para confirmación de email: `/public/auth/confirm?token=...`
+* Nuevo flujo de recuperación de contraseña:
+  - `/public/auth/password/recovery`
+  - `/public/auth/password/reset`
+* Nuevos endpoints privados de usuario:
+  - `GET /private/auth/users/:id`
+  - `PUT /private/auth/users/:id`
+  - `DELETE /private/auth/users/:id`
+* Soporte CRUD de usuario en `authService` y repositorio:
+  - `GetUserByID`
+  - `UpdateUser`
+  - `DeleteUser` (soft delete)
+  - `ActivateUser`
+  - `RequestPasswordRecovery`
+  - `ResetPassword`
+* Nuevos DTOs para requests/response:
+  - `PasswordRecoveryRequest`
+  - `PasswordResetRequest`
+  - `UpdateUserRequest`
+  - `GetUserResponse`
+* Extensión de modelos de perfiles para gym/trainer:
+  - `GymProfile` ahora guarda `city`, `department`, `country`, `primary_color`, `secondary_color`, `referral_code` y `workstation`.
+  - `TrainerProfile` ahora guarda `primary_color`, `secondary_color`, `referral_code` y `files_id` para avatar.
+* Se añadió la lógica de guardado de perfil de gym y perfil de entrenador en el registro.
+* Se documentó este flujo adicional en el IA Memory para mantener el diseño alineado con la implementación.
+* Se creó la estructura de carpeta para el endpoint de login en `src/core/auth/login` con los submódulos `app`, `domain`, e `infra`.
