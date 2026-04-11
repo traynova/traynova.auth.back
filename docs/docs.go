@@ -673,6 +673,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/public/auth/confirm": {
+            "get": {
+                "description": "Activa la cuenta del usuario usando el token de activación enviado por correo electrónico",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Confirmar email de usuario",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de activación recibido por email",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/structs_response.GetUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/public/auth/password/recovery": {
             "post": {
                 "description": "Envía un enlace de recuperación al email del usuario",
@@ -1303,6 +1349,38 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "prefix": {
+                    "type": "string"
+                }
+            }
+        },
+        "structs_response.GetUserResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "email_confirmed": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "prefix": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "integer"
+                },
+                "role_name": {
                     "type": "string"
                 }
             }

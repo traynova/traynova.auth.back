@@ -41,7 +41,7 @@ func ValidateTokenMiddleware(jwtKey []byte) gin.HandlerFunc {
 		}
 
 		tokenStr := authHeader
-		if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+		if strings.HasPrefix(strings.ToLower(authHeader), "Bearer") {
 			tokenStr = strings.TrimSpace(authHeader[7:])
 		}
 

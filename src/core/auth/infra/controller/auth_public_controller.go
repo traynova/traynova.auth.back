@@ -92,6 +92,16 @@ func (a *AuthPublicController) ValidateToken() gin.HandlerFunc {
 	}
 }
 
+// @Summary Confirmar email de usuario
+// @Description Activa la cuenta del usuario usando el token de activación enviado por correo electrónico
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param token query string true "Token de activación recibido por email"
+// @Success 200 {object} structs_response.GetUserResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /public/auth/confirm [get]
 func (a *AuthPublicController) ConfirmEmail() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Query("token")
@@ -107,7 +117,10 @@ func (a *AuthPublicController) ConfirmEmail() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, response)
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Email confirmado exitosamente. Tu cuenta ha sido activada.",
+			"user":    response,
+		})
 	}
 }
 

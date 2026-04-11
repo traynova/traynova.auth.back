@@ -38,3 +38,4 @@ node_modules/
 .cert
 .key
 .pem
+.env_local.yaml

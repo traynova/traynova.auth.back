@@ -7,9 +7,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gestrym/src/common/middleware"
 	"gestrym/src/common/models"
 	"gestrym/src/common/shared"
+	"gestrym/src/common/utils"
 	ports_auth "gestrym/src/core/auth/domain/ports"
 	structs_request "gestrym/src/core/auth/domain/structs/request"
 	structs_response "gestrym/src/core/auth/domain/structs/response"
@@ -19,6 +21,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -40,13 +43,15 @@ type authService struct {
 	userRepo      ports_auth.IAuthRepository
 	jwt_app       jwt_service.IJWTService
 	tokenTypeRepo token_types_ports.IUserTokenTypeRepository
+	logger        utils.ILogger
 }
 
-func NewAuthService(ur ports_auth.IAuthRepository, jwtApp jwt_service.IJWTService, tokenTypeRepo token_types_ports.IUserTokenTypeRepository) IAuthService {
+func NewAuthService(ur ports_auth.IAuthRepository, jwtApp jwt_service.IJWTService, tokenTypeRepo token_types_ports.IUserTokenTypeRepository, logger utils.ILogger) IAuthService {
 	return &authService{
 		userRepo:      ur,
 		jwt_app:       jwtApp,
 		tokenTypeRepo: tokenTypeRepo,
+		logger:        logger,
 	}
 }
 
@@ -56,17 +61,36 @@ func generateToken() string {
 	return hex.EncodeToString(b)
 }
 
+func getNotificationBaseURL() string {
+	url := viper.GetString("NOTIFICATION_SERVICE_URL")
+	if url == "" {
+		url = "http://localhost:8443"
+	}
+	return url
+}
+
+func getDashboardURL() string {
+	url := viper.GetString("DASHBOARD_URL")
+	if url == "" {
+		url = "http://localhost:3000"
+	}
+	return url
+}
+
 func sendConfirmationEmail(user *models.User, name, token string) error {
 	payload := map[string]interface{}{
 		"user_id":       user.ID,
 		"email":         user.Email,
 		"user_name":     name,
 		"confirm_token": token,
-		"dashboard_url": "http://localhost:3000",
+		"dashboard_url": getDashboardURL(),
 	}
 	jsonPayload, _ := json.Marshal(payload)
-	http.Post("http://localhost:8443/traynova-notification/public/send-confirmation", "application/json", bytes.NewBuffer(jsonPayload))
-
+	notificationURL := fmt.Sprintf("%s/traynova-notification/public/send-confirmation", getNotificationBaseURL())
+	_, err := http.Post(notificationURL, "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("error al contactar servicio de notificaciones: %w", err)
+	}
 	return nil
 }
 
@@ -75,11 +99,14 @@ func sendPasswordRecoveryEmail(user *models.User, token string) error {
 		"user_id":       user.ID,
 		"email":         user.Email,
 		"reset_token":   token,
-		"dashboard_url": "http://localhost:3000",
+		"dashboard_url": getDashboardURL(),
 	}
 	jsonPayload, _ := json.Marshal(payload)
-	http.Post("http://localhost:8443/traynova-notification/public/send-password-recovery", "application/json", bytes.NewBuffer(jsonPayload))
-
+	notificationURL := fmt.Sprintf("%s/traynova-notification/public/send-password-recovery", getNotificationBaseURL())
+	_, err := http.Post(notificationURL, "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("error al contactar servicio de notificaciones: %w", err)
+	}
 	return nil
 }
 
@@ -114,13 +141,14 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*struct
 		}
 
 		newUser := &models.User{
-			Email:    req.Email,
-			Password: string(hashedPassword),
-			FullName: req.FullName,
-			Prefix:   req.Prefix,
-			Phone:    req.Phone,
-			RoleID:   req.RoleID,
-			IsActive: true,
+			Email:          req.Email,
+			Password:       string(hashedPassword),
+			FullName:       req.FullName,
+			Prefix:         req.Prefix,
+			Phone:          req.Phone,
+			RoleID:         req.RoleID,
+			IsActive:       false,
+			EmailConfirmed: false,
 		}
 
 		user, err = s.userRepo.CreateUser(newUser)
@@ -175,9 +203,9 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*struct
 		return nil, errors.New("error registrando token de activación")
 	}
 
-	errNotifiction := sendConfirmationEmail(user, "ACTIVE_USER", jwtToken)
-	if errNotifiction != nil {
-		return nil, errors.New("error enviando email de confirmación")
+	errNotification := sendConfirmationEmail(user, user.FullName, jwtToken)
+	if errNotification != nil {
+		s.logger.Error("error enviando email de confirmación: " + errNotification.Error())
 	}
 
 	authResponse := &structs_response.RegisterResponse{

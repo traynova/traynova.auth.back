@@ -82,8 +82,11 @@
   - Se recibe `RegisterRequest` con campos `registration_source` y `source_id` para diferenciar self/gym/trainer.
   - El servicio permite reactivar usuarios existentes con el mismo email y el mismo rol.
   - Se crean asociaciones de negocio: `TrainerProfile` para entrenadores de gym, `TrainerClient` para clientes de entrenador y `GymClient` para clientes registrados por un gym.
+  - **El usuario se crea con `is_active: false` y `email_confirmed: false` hasta confirmar el email.**
+  - **La contraseña es requerida en el registro.** El usuario se activa SOLO al confirmar el email.
   - Se genera JWT de activación y se registra como `UserToken` tipo activación.
-  - Se envía solicitud HTTP a un servicio de notificaciones externo para confirmar email.
+  - Se envía solicitud HTTP al servicio de notificaciones (URL configurable por env var `NOTIFICATION_SERVICE_URL`).
+  - El email enviado incluye el nombre real del usuario (`user.FullName`) en lugar de un placeholder.
   - Existe un endpoint de confirmación de email que recibe el token de activación y activa al usuario.
   - Se agregó soporte para obtener usuario por ID, modificar datos de usuario y soft delete de usuario (`is_active = false`).
   - Se agregó flujo de recuperación de contraseña: solicitud de recuperación por email y restablecimiento con token.
@@ -181,4 +184,29 @@
   - `TrainerProfile` ahora guarda `primary_color`, `secondary_color`, `referral_code` y `files_id` para avatar.
 * Se añadió la lógica de guardado de perfil de gym y perfil de entrenador en el registro.
 * Se documentó este flujo adicional en el IA Memory para mantener el diseño alineado con la implementación.
-* Se creó la estructura de carpeta para el endpoint de login en `src/core/auth/login` con los submódulos `app`, `domain`, e `infra`.
+* Se creó la estructura de carpeta para el endpoint de login en `src/core/login` con los submódulos `app`, `domain`, e `infra`.
+
+## 11. ✅ Cambios más recientes (2026-04-11)
+
+* **Flujo de confirmación de email implementado y corregido:**
+  - El usuario se registra con todos sus datos incluyendo contraseña.
+  - Al registrarse, `is_active: false` y `email_confirmed: false` — la cuenta queda **inactiva para todos los usuarios**.
+  - Se genera JWT de activación, se guarda en `UserToken` tipo `activation`, y se envía al servicio de notificaciones.
+  - El email incluye el nombre real del usuario (`FullName`) en lugar del placeholder `"ACTIVE_USER"`.
+  - Al confirmar email vía `GET /public/auth/confirm?token=...`, el usuario se activa (`is_active: true`, `email_confirmed: true`) y el token se invalida.
+  - El login (`POST /public/login`) ya valida `is_active` y `email_confirmed` antes de generar tokens.
+
+* **URLs del servicio de notificaciones externalizadas:**
+  - `sendConfirmationEmail` y `sendPasswordRecoveryEmail` ahora leen `NOTIFICATION_SERVICE_URL` y `DASHBOARD_URL` desde Viper (variables de entorno).
+  - Fallback a `http://localhost:8443` y `http://localhost:3000` si no se configuran.
+  - Nuevas variables documentadas en `.env.example`.
+
+* **Swagger docs agregadas a `ConfirmEmail`:**
+  - El endpoint `GET /public/auth/confirm` ahora tiene anotaciones Swagger completas.
+  - La respuesta incluye `message` y `user` en lugar de solo el objeto usuario.
+
+* **Corrección de imports del módulo login:**
+  - Los imports en `src/core/login/` apuntaban erróneamente a `gestrym/src/core/auth/login/`.
+  - Corregidos en `login_service.go`, `login_repository.go`, `login_controller.go` y `ServerRoutesDefinition.go`.
+  - El proyecto compila exitosamente (`go build ./...`).
+

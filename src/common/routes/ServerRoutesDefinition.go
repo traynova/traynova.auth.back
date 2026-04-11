@@ -22,11 +22,11 @@ import (
 	authApp "gestrym/src/core/auth/app"
 	authCtrl "gestrym/src/core/auth/infra/controller"
 	authRepo "gestrym/src/core/auth/infra/repository"
-	loginApp "gestrym/src/core/auth/login/app"
-	loginCtrl "gestrym/src/core/auth/login/infra/controller"
-	loginRepo "gestrym/src/core/auth/login/infra/repository"
 	jwt_service "gestrym/src/core/jwt/app"
 	jwtRepo "gestrym/src/core/jwt/infra"
+	loginApp "gestrym/src/core/login/app"
+	loginCtrl "gestrym/src/core/login/infra/controller"
+	loginRepo "gestrym/src/core/login/infra/repository"
 
 	permApp "gestrym/src/core/permissions/app"
 	permCtrl "gestrym/src/core/permissions/infra/controller"
@@ -116,7 +116,7 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	loginRepository := loginRepo.NewLoginRepository(db)
 	loginService := loginApp.NewLoginService(loginRepository, jwtService)
 	loginController := loginCtrl.NewLoginController(loginService)
-	authService := authApp.NewAuthService(authRepository, jwtService, tokenTypeRepository)
+	authService := authApp.NewAuthService(authRepository, jwtService, tokenTypeRepository, r.logger)
 
 	// Controllers
 	rolePrivateController := roleCtrl.NewRolePrivateController(roleService)

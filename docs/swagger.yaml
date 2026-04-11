@@ -136,6 +136,27 @@ definitions:
       prefix:
         type: string
     type: object
+  structs_response.GetUserResponse:
+    properties:
+      email:
+        type: string
+      email_confirmed:
+        type: boolean
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      phone:
+        type: string
+      prefix:
+        type: string
+      role_id:
+        type: integer
+      role_name:
+        type: string
+    type: object
   structs_response.RegisterResponse:
     properties:
       email:
@@ -613,6 +634,38 @@ paths:
       summary: Editar Rol
       tags:
       - Roles
+  /public/auth/confirm:
+    get:
+      consumes:
+      - application/json
+      description: Activa la cuenta del usuario usando el token de activación enviado
+        por correo electrónico
+      parameters:
+      - description: Token de activación recibido por email
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/structs_response.GetUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Confirmar email de usuario
+      tags:
+      - Auth
   /public/auth/password/recovery:
     post:
       consumes:
