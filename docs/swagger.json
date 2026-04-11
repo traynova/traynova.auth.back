@@ -240,6 +240,11 @@
         },
         "/private/auth/relationships": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Si el usuario es coach, devuelve clientes independientes y clientes de gimnasio separados. Si el usuario es gym, devuelve entrenadores y sus clientes de gimnasio.",
                 "consumes": [
                     "application/json"
@@ -285,6 +290,11 @@
         },
         "/private/auth/users": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Obtiene una lista de todos los usuarios registrados en el sistema",
                 "consumes": [
                     "application/json"
@@ -368,6 +378,11 @@
         },
         "/private/auth/users/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve el usuario con el ID especificado",
                 "consumes": [
                     "application/json"
@@ -420,6 +435,11 @@
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Modifica los campos del usuario especificado",
                 "consumes": [
                     "application/json"
@@ -474,6 +494,11 @@
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Desactiva el usuario marcando is_active en falso",
                 "consumes": [
                     "application/json"
@@ -626,75 +651,6 @@
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/public/auth/confirm": {
-            "get": {
-                "description": "Activa al usuario cuando el token de confirmación es válido\nVerifica si el token de acceso es válido para usarlo.",
-                "consumes": [
-                    "application/json",
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json",
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth",
-                    "Auth"
-                ],
-                "summary": "Validar token JWT",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token de confirmación",
-                        "name": "token",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Token JWT",
-                        "name": "token",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -866,28 +822,18 @@
         },
         "/public/auth/validate": {
             "get": {
-                "description": "Activa al usuario cuando el token de confirmación es válido\nVerifica si el token de acceso es válido para usarlo.",
+                "description": "Verifica si el token de acceso es válido para usarlo.",
                 "consumes": [
-                    "application/json",
                     "application/json"
                 ],
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
-                    "Auth",
                     "Auth"
                 ],
                 "summary": "Validar token JWT",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token de confirmación",
-                        "name": "token",
-                        "in": "query",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Bearer token",
@@ -918,13 +864,6 @@
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

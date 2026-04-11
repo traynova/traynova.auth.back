@@ -44,19 +44,7 @@ func (a *AuthPublicController) Register() gin.HandlerFunc {
 			return
 		}
 
-		userIDInterface, exists := c.Get("user_id")
-		if !exists {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo obtener el ID del usuario"})
-			return
-		}
-
-		userId, ok := userIDInterface.(uint)
-		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "ID del usuario en formato incorrecto"})
-			return
-		}
-
-		response, err := a.authService.RegisterUser(*createUserRequest, userId)
+		response, err := a.authService.RegisterUser(*createUserRequest)
 		if err != nil {
 			a.logger.Error("Error while creating user", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -67,16 +55,6 @@ func (a *AuthPublicController) Register() gin.HandlerFunc {
 	}
 }
 
-// @Summary Confirmar email de usuario
-// @Description Activa al usuario cuando el token de confirmación es válido
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param token query string true "Token de confirmación"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /public/auth/confirm [get]
 // @Summary Validar token JWT
 // @Description Verifica si el token de acceso es válido para usarlo.
 // @Tags Auth

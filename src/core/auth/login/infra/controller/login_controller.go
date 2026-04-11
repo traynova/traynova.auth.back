@@ -17,6 +17,7 @@ func NewLoginController(loginService app.ILoginService) *LoginController {
 	return &LoginController{loginService: loginService}
 }
 
+
 func (c *LoginController) Login() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req structs_request.LoginRequest

@@ -110,7 +110,7 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	if err != nil {
 		routesInstance.logger.Fatal("error al inicializar el servicio JWT: %v", err)
 	}
-	authService := authApp.NewAuthService(authRepository, jwtService)
+	authService := authApp.NewAuthService(authRepository, jwtService, tokenTypeRepository)
 
 	// Controllers
 	rolePrivateController := roleCtrl.NewRolePrivateController(roleService)

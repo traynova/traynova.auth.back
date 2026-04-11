@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -14,14 +15,16 @@ import (
 	structs_response "gestrym/src/core/auth/domain/structs/response"
 	jwt_service "gestrym/src/core/jwt/app"
 	jwt_requests "gestrym/src/core/jwt/domain/structs/request"
+	token_types_ports "gestrym/src/core/token_types/domain/ports"
 	"net/http"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type IAuthService interface {
-	RegisterUser(req structs_request.RegisterRequest, userId uint) (*structs_response.RegisterResponse, error)
+	RegisterUser(req structs_request.RegisterRequest) (*structs_response.RegisterResponse, error)
 	GetAllUsers(page int, pageSize int, name string, dni string, email string, role_id uint) (shared.ResponsePaginate, error)
 	GetUserByID(userID uint) (*structs_response.GetUserResponse, error)
 	UpdateUser(userID uint, req structs_request.UpdateUserRequest) (*structs_response.GetUserResponse, error)
@@ -34,14 +37,16 @@ type IAuthService interface {
 }
 
 type authService struct {
-	userRepo ports_auth.IAuthRepository
-	jwt_app  jwt_service.IJWTService
+	userRepo      ports_auth.IAuthRepository
+	jwt_app       jwt_service.IJWTService
+	tokenTypeRepo token_types_ports.IUserTokenTypeRepository
 }
 
-func NewAuthService(ur ports_auth.IAuthRepository, jwtApp jwt_service.IJWTService) IAuthService {
+func NewAuthService(ur ports_auth.IAuthRepository, jwtApp jwt_service.IJWTService, tokenTypeRepo token_types_ports.IUserTokenTypeRepository) IAuthService {
 	return &authService{
-		userRepo: ur,
-		jwt_app:  jwtApp,
+		userRepo:      ur,
+		jwt_app:       jwtApp,
+		tokenTypeRepo: tokenTypeRepo,
 	}
 }
 
@@ -78,7 +83,7 @@ func sendPasswordRecoveryEmail(user *models.User, token string) error {
 	return nil
 }
 
-func (s *authService) RegisterUser(req structs_request.RegisterRequest, userId uint) (*structs_response.RegisterResponse, error) {
+func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*structs_response.RegisterResponse, error) {
 	existingUser, err := s.userRepo.ValidateEmail(req.Email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errors.New("error validating email")
@@ -137,10 +142,29 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest, userId u
 
 	jwtToken, _ := s.jwt_app.GenerateJwtToken(jwtRequest, nil)
 
+	activationTokenType, err := s.tokenTypeRepo.FindByType(context.Background(), models.UserTokenTypeActivation)
+	if err != nil {
+		return nil, errors.New("error buscando tipo de token de activación")
+	}
+	if activationTokenType == nil || activationTokenType.ID == 0 {
+		return nil, errors.New("tipo de token de activación no encontrado")
+	}
+
+	claims, err := s.jwt_app.ValidateJwtToken(jwtToken)
+	if err != nil {
+		return nil, errors.New("error validando token JWT para registro")
+	}
+
+	expiresAt := time.Now()
+	if claims.ExpiresAt != nil {
+		expiresAt = claims.ExpiresAt.Time
+	}
+
 	userToken := models.UserToken{
 		Token:           jwtToken,
-		UserTokenTypeID: 2,
+		UserTokenTypeID: activationTokenType.ID,
 		UserID:          user.ID,
+		ExpiresAt:       expiresAt,
 	}
 
 	userTokenError := s.jwt_app.RegisterToken(userToken)
@@ -154,6 +178,7 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest, userId u
 	}
 
 	authResponse := &structs_response.RegisterResponse{
+		Id:     user.ID,
 		Email:  user.Email,
 		Name:   user.FullName,
 		Phone:  user.Phone,
@@ -482,10 +507,29 @@ func (s *authService) RequestPasswordRecovery(email string) error {
 		return err
 	}
 
+	passwordRecoveryTokenType, err := s.tokenTypeRepo.FindByType(context.Background(), models.UserTokenTypePasswordRecovery)
+	if err != nil {
+		return errors.New("error buscando tipo de token de recuperación")
+	}
+	if passwordRecoveryTokenType == nil || passwordRecoveryTokenType.ID == 0 {
+		return errors.New("tipo de token de recuperación no encontrado")
+	}
+
+	claims, err := s.jwt_app.ValidateJwtToken(token)
+	if err != nil {
+		return err
+	}
+
+	expiresAt := time.Now()
+	if claims.ExpiresAt != nil {
+		expiresAt = claims.ExpiresAt.Time
+	}
+
 	userToken := models.UserToken{
 		Token:           token,
-		UserTokenTypeID: 2,
+		UserTokenTypeID: passwordRecoveryTokenType.ID,
 		UserID:          user.ID,
+		ExpiresAt:       expiresAt,
 	}
 
 	if err := s.jwt_app.RegisterToken(userToken); err != nil {

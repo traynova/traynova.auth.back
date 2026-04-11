@@ -2,6 +2,11 @@ package models
 
 import "gorm.io/gorm"
 
+const (
+	UserTokenTypeActivation       = "activation"
+	UserTokenTypePasswordRecovery = "password_recovery"
+)
+
 type UserTokenType struct {
 	gorm.Model
 

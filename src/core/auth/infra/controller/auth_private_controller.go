@@ -37,6 +37,9 @@ func NewAuthPrivateController(as app.IAuthService, logger utils.ILogger) *AuthPr
 // @Failure 400 {object} map[string]interface{}
 // @Failure 403 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
 // @Router /private/auth/users [get]
 func (a *AuthPrivateController) GetUsers() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -77,6 +80,9 @@ func (a *AuthPrivateController) GetUsers() gin.HandlerFunc {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
 // @Router /private/auth/users/{id} [get]
 func (a *AuthPrivateController) GetUserByID() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -107,6 +113,9 @@ func (a *AuthPrivateController) GetUserByID() gin.HandlerFunc {
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
 // @Router /private/auth/users/{id} [put]
 func (a *AuthPrivateController) UpdateUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -142,6 +151,9 @@ func (a *AuthPrivateController) UpdateUser() gin.HandlerFunc {
 // @Success 204 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
 // @Router /private/auth/users/{id} [delete]
 func (a *AuthPrivateController) DeleteUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -170,6 +182,9 @@ func (a *AuthPrivateController) DeleteUser() gin.HandlerFunc {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 403 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
 // @Router /private/auth/relationships [get]
 func (a *AuthPrivateController) GetClientRelationships() gin.HandlerFunc {
 	return func(c *gin.Context) {

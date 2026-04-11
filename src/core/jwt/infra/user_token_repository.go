@@ -46,7 +46,10 @@ func (u *userTokenRepository) GetUserToken(token string) (models.UserToken, erro
 
 func (r *userTokenRepository) GetLastActivationUserToken(userId uint) (string, error) {
 	var validationToken models.UserToken
-	err := r.db.Where("user_id = ? AND token_type_id = 2", userId).Last(&validationToken).Error
+	err := r.db.Model(&models.UserToken{}).
+		Joins("JOIN user_token_types ON user_token_types.id = user_tokens.user_token_type_id").
+		Where("user_tokens.user_id = ? AND user_token_types.type = ?", userId, models.UserTokenTypeActivation).
+		Last(&validationToken).Error
 	if err != nil {
 		return "", err
 	}
