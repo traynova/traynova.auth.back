@@ -1,5 +1,26 @@
 basePath: /gestrym-auth
 definitions:
+  request.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  response.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      email:
+        type: string
+      refresh_token:
+        type: string
+      role_id:
+        type: integer
+    type: object
   structs.CreateAccessLevelRequest:
     properties:
       description:
@@ -114,6 +135,27 @@ definitions:
         type: string
       prefix:
         type: string
+    type: object
+  structs_response.RegisterResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      role_id:
+        type: integer
+      token:
+        type: string
+    required:
+    - email
+    - name
+    - phone
+    - role_id
+    - token
     type: object
   structs_roles.CreateRoleRequest:
     properties:
@@ -656,8 +698,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/structs_response.RegisterResponse'
         "400":
           description: Bad Request
           schema:
@@ -711,6 +752,38 @@ paths:
       summary: Validar token JWT
       tags:
       - Auth
+  /public/login:
+    post:
+      consumes:
+      - application/json
+      description: Inicia sesión con email y contraseña. Devuelve access_token y refresh_token.
+      parameters:
+      - description: Credenciales de acceso
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Iniciar sesión
+      tags:
+      - Login
   /public/roles:
     get:
       description: Obtiene todos los roles disponibles.

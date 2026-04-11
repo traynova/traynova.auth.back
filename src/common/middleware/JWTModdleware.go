@@ -2,9 +2,9 @@ package middleware
 
 import (
 	"errors"
+	"gestrym/src/common/utils"
 	"net/http"
 	"strings"
-	"gestrym/src/common/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -33,14 +33,18 @@ func ValidateTokenMiddleware(jwtKey []byte) gin.HandlerFunc {
 			return
 		}
 
-		authHeader := c.GetHeader("Authorization")
+		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
 		if authHeader == "" {
 			logger.Error("[JWT_AUTHENTICATION_FAILED] %v", ErrMissingAuthHeader)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": ErrMissingAuthHeader.Error()})
 			return
 		}
 
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+		tokenStr := authHeader
+		if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+			tokenStr = strings.TrimSpace(authHeader[7:])
+		}
+
 		claims := &CustomClaims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

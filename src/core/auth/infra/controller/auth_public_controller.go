@@ -29,7 +29,7 @@ func NewAuthPublicController(as app.IAuthService, logger utils.ILogger) *AuthPub
 // @Accept json
 // @Produce json
 // @Param request body structs_request.RegisterRequest true "Datos del usuario"
-// @Success 201 {object} map[string]interface{}
+// @Success 201 {object} structs_response.RegisterResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 403 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -51,7 +51,7 @@ func (a *AuthPublicController) Register() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"response": response})
+		c.JSON(http.StatusCreated, response)
 	}
 }
 

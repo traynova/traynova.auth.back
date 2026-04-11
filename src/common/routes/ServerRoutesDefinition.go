@@ -22,6 +22,9 @@ import (
 	authApp "gestrym/src/core/auth/app"
 	authCtrl "gestrym/src/core/auth/infra/controller"
 	authRepo "gestrym/src/core/auth/infra/repository"
+	loginApp "gestrym/src/core/auth/login/app"
+	loginCtrl "gestrym/src/core/auth/login/infra/controller"
+	loginRepo "gestrym/src/core/auth/login/infra/repository"
 	jwt_service "gestrym/src/core/jwt/app"
 	jwtRepo "gestrym/src/core/jwt/infra"
 
@@ -110,6 +113,9 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	if err != nil {
 		routesInstance.logger.Fatal("error al inicializar el servicio JWT: %v", err)
 	}
+	loginRepository := loginRepo.NewLoginRepository(db)
+	loginService := loginApp.NewLoginService(loginRepository, jwtService)
+	loginController := loginCtrl.NewLoginController(loginService)
 	authService := authApp.NewAuthService(authRepository, jwtService, tokenTypeRepository)
 
 	// Controllers
@@ -137,7 +143,7 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	r.protectedGroup.Use(middleware.SetupApiKeyMiddleware())
 
 	// Add routes to groups
-	r.addPublicRoutes(rolePublicController, authPublicController)
+	r.addPublicRoutes(rolePublicController, authPublicController, loginController)
 	r.addPrivateRoutes(rolePrivateController, permissionController, actionController, accessLevelController, tokenTypeController, authPrivateController)
 	r.addInternalRoutes()
 	r.addProtectedRoutes()
@@ -172,10 +178,12 @@ func (r *routesDefinition) addDefaultRoutes(serverInstance *gin.Engine) {
 func (r *routesDefinition) addPublicRoutes(
 	rolePublicController *roleCtrl.RolePublicController,
 	authPublicController *authCtrl.AuthPublicController,
+	loginController *loginCtrl.LoginController,
 ) {
 	r.publicGroup.GET("/roles", rolePublicController.GetRoles)
 	r.publicGroup.POST("/roles", rolePublicController.CreateRole)
 	r.publicGroup.POST("/auth/register", authPublicController.Register())
+	r.publicGroup.POST("/login", loginController.Login())
 	r.publicGroup.GET("/auth/confirm", authPublicController.ConfirmEmail())
 	r.publicGroup.POST("/auth/password/recovery", authPublicController.RequestPasswordRecovery())
 	r.publicGroup.POST("/auth/password/reset", authPublicController.ResetPassword())

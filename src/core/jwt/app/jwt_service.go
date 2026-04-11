@@ -28,6 +28,7 @@ type IJWTService interface {
 	ValidateJwtToken(tokenString string) (*jwt_structs.CustomClaims, error)
 	ChecUserTokenUsed(token string) error
 	DeleteUserToken(token string) error
+	GenerateRefreshToken(userId uint) (string, error)
 }
 
 type jwtService struct {

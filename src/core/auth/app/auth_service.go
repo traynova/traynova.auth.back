@@ -140,7 +140,10 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*struct
 		Email:         user.Email,
 	}
 
-	jwtToken, _ := s.jwt_app.GenerateJwtToken(jwtRequest, nil)
+	jwtToken, err := s.jwt_app.GenerateJwtToken(jwtRequest, nil)
+	if err != nil {
+		return nil, errors.New("error generando token JWT")
+	}
 
 	activationTokenType, err := s.tokenTypeRepo.FindByType(context.Background(), models.UserTokenTypeActivation)
 	if err != nil {
@@ -502,6 +505,7 @@ func (s *authService) RequestPasswordRecovery(email string) error {
 		RoleID:        user.RoleID,
 		AccessLevelID: 1,
 		Email:         user.Email,
+		PhoneNumber:   user.Phone,
 	}, nil)
 	if err != nil {
 		return err
