@@ -2,41 +2,36 @@ package app
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"net/http"
-	"time"
-	"gestrym/src/common/middleware"
 	"gestrym/src/common/models"
-	authPorts "gestrym/src/core/auth/domain/ports"
-	userPorts "gestrym/src/core/users/domain/ports"
+	"gestrym/src/common/shared"
+	ports_auth "gestrym/src/core/auth/domain/ports"
+	structs_request "gestrym/src/core/auth/domain/structs/request"
+	structs_response "gestrym/src/core/auth/domain/structs/response"
+	jwt_service "gestrym/src/core/jwt/app"
+	jwt_requests "gestrym/src/core/jwt/domain/structs/request"
+	"net/http"
 
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
-	"google.golang.org/api/idtoken"
 )
 
 type IAuthService interface {
-	RegisterUser(ctx context.Context, email, phone, name string, roleID uint) error
-	Login(ctx context.Context, email, password string, jwtKey []byte) (string, string, error)
-	GoogleLogin(ctx context.Context, token string, jwtKey []byte) (string, string, error)
-	Logout(ctx context.Context, token string) error
-	Refresh(ctx context.Context, refreshToken string, jwtKey []byte) (string, string, error)
+	RegisterUser(req structs_request.RegisterRequest, userId uint) (*structs_response.RegisterResponse, error)
+	GetAllUsers(page int, pageSize int, name string, dni string, email string, role_id uint) (shared.ResponsePaginate, error)
 }
 
 type authService struct {
-	userRepo  userPorts.IUserRepository
-	tokenRepo authPorts.ITokenRepository
+	userRepo ports_auth.IAuthRepository
+	jwt_app  jwt_service.IJWTService
 }
 
-func NewAuthService(ur userPorts.IUserRepository, tr authPorts.ITokenRepository) IAuthService {
+func NewAuthService(ur ports_auth.IAuthRepository, jwtApp jwt_service.IJWTService) IAuthService {
 	return &authService{
-		userRepo:  ur,
-		tokenRepo: tr,
+		userRepo: ur,
+		jwt_app:  jwtApp,
 	}
 }
 
@@ -46,171 +41,111 @@ func generateToken() string {
 	return hex.EncodeToString(b)
 }
 
-func sendConfirmationEmail(userID uint, email, name, token string) {
+func sendConfirmationEmail(user *models.User, name, token string) error {
 	payload := map[string]interface{}{
-		"user_id":       userID,
-		"email":         email,
+		"user_id":       user.ID,
+		"email":         user.Email,
 		"user_name":     name,
 		"confirm_token": token,
 		"dashboard_url": "http://localhost:3000",
 	}
 	jsonPayload, _ := json.Marshal(payload)
 	http.Post("http://localhost:8443/traynova-notification/public/send-confirmation", "application/json", bytes.NewBuffer(jsonPayload))
+
+	return nil
 }
 
-func (s *authService) RegisterUser(ctx context.Context, email, phone, name string, roleID uint) error {
-	user := &models.User{
-		Email:    email,
-		Phone:    phone,
-		Password: "",
-		Name:     name,
-		RoleID:   roleID,
-		IsActive: true,
+func (s *authService) RegisterUser(req structs_request.RegisterRequest, userId uint) (*structs_response.RegisterResponse, error) {
+	existingUser, _ := s.userRepo.ValidateEmail(req.Email)
+	if existingUser.IsActive {
+		return nil, errors.New("ya existe un usuario activo con ese email")
 	}
-	err := s.userRepo.Create(ctx, user)
-	if err == nil {
-		token := generateToken()
-		
-		ut := &models.UserToken{
-			UserID:          user.ID,
-			UserTokenTypeID: 2, 
-			Token:           token,
-			ExpiresAt:       time.Now().Add(24 * time.Hour), 
+
+	var errCreate error = nil
+	var user *models.User
+	if !existingUser.IsActive {
+		_, errCreate = s.userRepo.UpdateUSer(existingUser)
+		if errCreate != nil {
+			return nil, errors.New("error reactivando usuario existente")
 		}
-		s.tokenRepo.CreateUserToken(ctx, ut)
-
-		go sendConfirmationEmail(user.ID, email, name, token)
-	}
-	return err
-}
-
-func (s *authService) Login(ctx context.Context, email, password string, jwtKey []byte) (string, string, error) {
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		return "", "", errors.New("credenciales inválidas")
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err != nil {
-		return "", "", errors.New("credenciales inválidas")
-	}
-
-	if !user.IsActive {
-		return "", "", errors.New("usuario inactivo")
-	}
-
-	return s.generateAndSaveTokens(ctx, user, jwtKey)
-}
-
-func (s *authService) GoogleLogin(ctx context.Context, token string, jwtKey []byte) (string, string, error) {
-	clientID := viper.GetString("GOOGLE_CLIENT_ID")
-	payload, err := idtoken.Validate(ctx, token, clientID)
-	if err != nil {
-		return "", "", errors.New("token de google inválido")
-	}
-
-	email, ok := payload.Claims["email"].(string)
-	if !ok {
-		return "", "", errors.New("el token no contiene un email")
-	}
-	name, _ := payload.Claims["name"].(string)
-
-	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		user = &models.User{
-			Email:    email,
-			Password: "", 
-			Name:     name,
-			RoleID:   1, // 1 = Cliente
-			IsActive: true,
+	} else {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, errors.New("error al hashear la contraseña")
 		}
-		if createErr := s.userRepo.Create(ctx, user); createErr != nil {
-			return "", "", errors.New("error creando usuario automáticamente")
+
+		newUser := &models.User{
+			Password: string(hashedPassword),
+		}
+
+		user, errCreate = s.userRepo.CreateUser(newUser)
+		if errCreate != nil {
+			return nil, errors.New("error creando nuevo usuario")
 		}
 	}
 
-	if !user.IsActive {
-		return "", "", errors.New("usuario inactivo")
+	jwtRequest := jwt_requests.GenerateJwtTokenRequest{
+		UserID:        user.ID,
+		RoleID:        user.RoleID,
+		AccessLevelID: 1,
+		Email:         user.Email,
 	}
 
-	return s.generateAndSaveTokens(ctx, user, jwtKey)
-}
+	jwtToken, _ := s.jwt_app.GenerateJwtToken(jwtRequest, nil)
 
-func (s *authService) generateAndSaveTokens(ctx context.Context, user *models.User, jwtKey []byte) (string, string, error) {
-	accExp := time.Now().Add(24 * time.Hour)
-	refExp := time.Now().Add(7 * 24 * time.Hour)
-
-	// Crear Access Token
-	claims := &middleware.CustomClaims{
-		UserID: user.ID,
-		RoleID: user.RoleID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(accExp),
-		},
-	}
-	accToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	accTokenString, err := accToken.SignedString(jwtKey)
-	if err != nil {
-		return "", "", err
-	}
-
-	// Persistir base token (Asumiendo TypeToken ID 1 = AccessToken localmente por ahora)
-	userToken := &models.UserToken{
+	// se registra el token con el estado activo tipo 2 "User Activation"
+	userToken := models.UserToken{
+		Token:           jwtToken,
+		UserTokenTypeID: 2,
 		UserID:          user.ID,
-		UserTokenTypeID: 1, // Access Token 
-		Token:           accTokenString,
-		ExpiresAt:       accExp,
 	}
-	s.tokenRepo.CreateUserToken(ctx, userToken)
 
-	// Crear Refresh Token
-	refClaims := jwt.RegisteredClaims{
-		Subject:   user.Email,
-		ExpiresAt: jwt.NewNumericDate(refExp),
+	userTokenError := s.jwt_app.RegisterToken(userToken)
+	if userTokenError != nil {
+		return nil, errors.New("error registrando token de activación")
 	}
-	refToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refClaims)
-	refTokenString, err := refToken.SignedString(jwtKey)
+
+	errNotifiction := sendConfirmationEmail(user, "ACTIVE_USER", jwtToken)
+	if errNotifiction != nil {
+		return nil, errors.New("error enviando email de confirmación")
+	}
+
+	authResponse := &structs_response.RegisterResponse{
+		Email:  user.Email,
+		Name:   user.FullName,
+		Phone:  user.Phone,
+		RoleID: user.RoleID,
+		Token:  jwtToken,
+	}
+
+	return authResponse, nil
+
+}
+
+func (s *authService) GetAllUsers(page int, pageSize int, name string, dni string, email string, roleId uint) (shared.ResponsePaginate, error) {
+	users, total, err := s.userRepo.GetAllUsers(page, pageSize, &name, &dni, &email)
 	if err != nil {
-		return "", "", err
+		return shared.ResponsePaginate{}, err
 	}
 
-	if userToken.ID != 0 {
-		refreshToken := &models.RefreshToken{
-			UserTokenID: userToken.ID,
-			Token:       refTokenString,
-			ExpiresAt:   refExp,
+	var userList []interface{}
+	for _, user := range users {
+		userResponse := structs_response.GetAllUsersResponse{
+			ID:       user.ID,
+			Name:     user.FullName,
+			Email:    user.Email,
+			Phone:    user.Phone,
+			RoleID:   user.RoleID,
+			RoleName: user.Role.Name,
 		}
-		s.tokenRepo.CreateRefreshToken(ctx, refreshToken)
+		userList = append(userList, userResponse)
 	}
 
-	return accTokenString, refTokenString, nil
-}
+	return shared.ResponsePaginate{
+		Page:     page,
+		PageSize: pageSize,
+		Total:    int(total),
+		Results:  userList,
+	}, nil
 
-func (s *authService) Logout(ctx context.Context, token string) error {
-	return s.tokenRepo.RevokeUserToken(ctx, token)
-}
-
-func (s *authService) Refresh(ctx context.Context, refreshToken string, jwtKey []byte) (string, string, error) {
-	// 1. Check refresh token in db
-	rt, err := s.tokenRepo.FindRefreshToken(ctx, refreshToken)
-	if err != nil || rt.IsRevoked || time.Now().After(rt.ExpiresAt) {
-		return "", "", errors.New("refresh token inválido o expirado")
-	}
-
-	// 2. Extact user from ut
-	ut, err := s.tokenRepo.FindUserToken(ctx, rt.UserToken.Token)
-	if err != nil { // Fetch user token properly
-		return "", "", errors.New("sesión corrupta")
-	}
-	user, err := s.userRepo.FindByID(ctx, ut.UserID)
-	if err != nil || !user.IsActive {
-		return "", "", errors.New("usuario no válido")
-	}
-
-	// 3. Mark old tokens as revoked
-	s.tokenRepo.RevokeRefreshToken(ctx, refreshToken)
-	s.tokenRepo.RevokeUserToken(ctx, ut.Token)
-
-	// 4. Issue new pair
-	return s.generateAndSaveTokens(ctx, user, jwtKey)
 }

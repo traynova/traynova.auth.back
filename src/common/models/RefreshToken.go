@@ -7,12 +7,16 @@ import (
 )
 
 type RefreshToken struct {
+	// Campos comunes
 	gorm.Model
+	CreatedBy *uint
+	UpdatedBy *uint
 
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	UserTokenID uint      `gorm:"not null;index" json:"user_token_id"`
-	UserToken   UserToken `gorm:"foreignKey:UserTokenID" json:"-"`
-	Token       string    `gorm:"type:text;not null;uniqueIndex" json:"token"`
-	IsRevoked   bool      `gorm:"default:false" json:"is_revoked"`
-	ExpiresAt   time.Time `gorm:"not null" json:"expires_at"`
+	// Campos específicos para la tabla
+	Key        string    `gorm:"unique;not null;index"`
+	ExpiryDate time.Time `gorm:"not null"`
+
+	// Relaciones
+	UserID uint `gorm:"not null"`
+	User   User
 }

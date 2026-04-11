@@ -15,10 +15,6 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	authApp "gestrym/src/core/auth/app"
-	authCtrl "gestrym/src/core/auth/infra/controller"
-	authRepo "gestrym/src/core/auth/infra/repository"
-
 	roleApp "gestrym/src/core/roles/app"
 	roleCtrl "gestrym/src/core/roles/infra/controller"
 	roleRepo "gestrym/src/core/roles/infra/repository"
@@ -26,10 +22,6 @@ import (
 	permApp "gestrym/src/core/permissions/app"
 	permCtrl "gestrym/src/core/permissions/infra/controller"
 	permRepo "gestrym/src/core/permissions/infra/repository"
-
-	userApp "gestrym/src/core/users/app"
-	userCtrl "gestrym/src/core/users/infra/controller"
-	userRepo "gestrym/src/core/users/infra/repository"
 
 	actionApp "gestrym/src/core/actions/app"
 	actionCtrl "gestrym/src/core/actions/infra/controller"
@@ -91,17 +83,13 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	db := config.NewPostgresConnection().GetDB()
 
 	// Repositories
-	userRepository := userRepo.NewUserRepository(db)
 	roleRepository := roleRepo.NewRoleRepository(db)
 	permissionRepository := permRepo.NewPermissionRepository(db)
-	tokenRepository := authRepo.NewTokenRepository(db)
 	actionRepository := actionRepo.NewActionRepository(db)
 	accessLevelRepository := levelRepo.NewAccessLevelRepository(db)
 	tokenTypeRepository := tokenTypeRepo.NewUserTokenTypeRepository(db)
 
 	// Services
-	authService := authApp.NewAuthService(userRepository, tokenRepository)
-	userService := userApp.NewUserService(userRepository)
 	roleService := roleApp.NewRoleService(roleRepository)
 	permissionService := permApp.NewPermissionService(permissionRepository)
 	actionService := actionApp.NewActionService(actionRepository)
@@ -109,8 +97,6 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	tokenTypeService := tokenTypeApp.NewUserTokenTypeService(tokenTypeRepository)
 
 	// Controllers
-	authController := authCtrl.NewAuthController(authService)
-	userController := userCtrl.NewUserController(userService)
 	rolePrivateController := roleCtrl.NewRolePrivateController(roleService)
 	rolePublicController := roleCtrl.NewRolePublicController(roleService)
 	permissionController := permCtrl.NewPermissionController(permissionService)
@@ -133,8 +119,8 @@ func (r *routesDefinition) addRoutes(serverInstance *gin.Engine) {
 	r.protectedGroup.Use(middleware.SetupApiKeyMiddleware())
 
 	// Add routes to groups
-	r.addPublicRoutes(authController, rolePublicController)
-	r.addPrivateRoutes(userController, rolePrivateController, permissionController, actionController, accessLevelController, tokenTypeController, authController)
+	r.addPublicRoutes(rolePublicController)
+	r.addPrivateRoutes(rolePrivateController, permissionController, actionController, accessLevelController, tokenTypeController)
 	r.addInternalRoutes()
 	r.addProtectedRoutes()
 
@@ -165,31 +151,18 @@ func (r *routesDefinition) addDefaultRoutes(serverInstance *gin.Engine) {
 	})
 }
 
-func (r *routesDefinition) addPublicRoutes(authController *authCtrl.AuthController, rolePublicController *roleCtrl.RolePublicController) {
-	r.publicGroup.POST("/auth/login", authController.Login)
-	r.publicGroup.POST("/auth/google", authController.GoogleLogin)
-	r.publicGroup.POST("/auth/register", authController.Register)
+func (r *routesDefinition) addPublicRoutes(rolePublicController *roleCtrl.RolePublicController) {
 	r.publicGroup.GET("/roles", rolePublicController.GetRoles)
 	r.publicGroup.POST("/roles", rolePublicController.CreateRole)
 }
 
 func (r *routesDefinition) addPrivateRoutes(
-	userController *userCtrl.UserController,
 	rolePrivateController *roleCtrl.RolePrivateController,
 	permissionController *permCtrl.PermissionController,
 	actionController *actionCtrl.ActionController,
 	accessLevelController *levelCtrl.AccessLevelController,
 	tokenTypeController *tokenTypeCtrl.UserTokenTypeController,
-	authController *authCtrl.AuthController,
 ) {
-	r.privateGroup.GET("/auth/validate", userController.Validate)
-
-	// Refresh / Logout endpoints
-	r.privateGroup.POST("/auth/refresh", authController.Refresh)
-	r.privateGroup.POST("/auth/logout", authController.Logout)
-
-	// El registro privado (dashboard) solo está permitido a Gym, Coach o Admin (roles 2, 3, 4)
-	r.privateGroup.POST("/users/register", middleware.RequireRoles(2, 3, 4), userController.CreateUser)
 
 	r.privateGroup.PUT("/roles/:id", rolePrivateController.UpdateRole)
 	r.privateGroup.DELETE("/roles/:id", rolePrivateController.DisableRole)

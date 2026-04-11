@@ -53,14 +53,14 @@ definitions:
     required:
     - type
     type: object
-  structs.GoogleLoginRequest:
+  structs_auth.GoogleLoginRequest:
     properties:
       id_token:
         type: string
     required:
     - id_token
     type: object
-  structs.LoginRequest:
+  structs_auth.LoginRequest:
     properties:
       email:
         type: string
@@ -70,21 +70,21 @@ definitions:
     - email
     - password
     type: object
-  structs.LogoutRequest:
+  structs_auth.LogoutRequest:
     properties:
       token:
         type: string
     required:
     - token
     type: object
-  structs.RefreshRequest:
+  structs_auth.RefreshRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  structs.RegisterRequest:
+  structs_auth.RegisterRequest:
     properties:
       email:
         type: string
@@ -236,176 +236,6 @@ paths:
       summary: Crear una Acción (CRUD)
       tags:
       - Actions
-  /auth/google:
-    post:
-      consumes:
-      - application/json
-      description: Inicia sesión utilizando un id_token provisto por Google. Si el
-        usuario no existe, lo registra como Cliente (1).
-      parameters:
-      - description: Token de Google
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs.GoogleLoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'access_token: xxx, refresh_token: yyy'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Login con Google
-      tags:
-      - Auth
-  /auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Realiza el login de un usuario registrado usando email y password,
-        y devuelve un JWT.
-      parameters:
-      - description: Credenciales de login
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'access_token: xxx, refresh_token: yyy'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Iniciar Sesión Tradicional
-      tags:
-      - Auth
-  /auth/logout:
-    post:
-      consumes:
-      - application/json
-      description: Invalida el token JWT actual (o provisto) en la base de datos de
-        tokens activos.
-      parameters:
-      - description: Token a revocar
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs.LogoutRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Cerrar Sesión
-      tags:
-      - Auth
-  /auth/refresh:
-    post:
-      consumes:
-      - application/json
-      description: Intercambia un refresh_token válido por un nuevo set de tokens
-        de acceso y refresco.
-      parameters:
-      - description: Refresh Token
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs.RefreshRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'access_token: xxx, refresh_token: yyy'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Refrescar Token
-      tags:
-      - Auth
-  /auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Crea un nuevo usuario públicamente. Solo permite roles Cliente
-        (1) o Coach (2).
-      parameters:
-      - description: Datos del usuario
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/structs.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Registrar Cliente o Coach
-      tags:
-      - Auth
   /auth/validate:
     get:
       consumes:
@@ -470,6 +300,69 @@ paths:
       summary: Crear Permiso
       tags:
       - Permissions
+  /private/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalida el token JWT actual (o provisto) en la base de datos de
+        tokens activos.
+      parameters:
+      - description: Token a revocar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_auth.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cerrar Sesión
+      tags:
+      - Auth
+  /private/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Intercambia un refresh_token válido por un nuevo set de tokens
+        de acceso y refresco.
+      parameters:
+      - description: Refresh Token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_auth.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'access_token: xxx, refresh_token: yyy'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Refrescar Token
+      tags:
+      - Auth
   /private/roles/{id}:
     delete:
       description: Marca un rol como inactivo en lugar de eliminarlo físicamente.
@@ -551,6 +444,113 @@ paths:
       summary: Editar Rol
       tags:
       - Roles
+  /public/auth/google:
+    post:
+      consumes:
+      - application/json
+      description: Inicia sesión utilizando un id_token provisto por Google. Si el
+        usuario no existe, lo registra como Cliente (1).
+      parameters:
+      - description: Token de Google
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_auth.GoogleLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'access_token: xxx, refresh_token: yyy'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login con Google
+      tags:
+      - Auth
+  /public/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Realiza el login de un usuario registrado usando email y password,
+        y devuelve un JWT.
+      parameters:
+      - description: Credenciales de login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'access_token: xxx, refresh_token: yyy'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Iniciar Sesión Tradicional
+      tags:
+      - Auth
+  /public/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo usuario públicamente. Solo permite roles Cliente
+        (1) o Coach (2).
+      parameters:
+      - description: Datos del usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/structs_auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Registrar Cliente o Coach
+      tags:
+      - Auth
   /public/roles:
     get:
       description: Obtiene todos los roles disponibles.

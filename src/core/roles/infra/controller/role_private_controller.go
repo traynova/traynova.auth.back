@@ -30,7 +30,7 @@ func NewRolePrivateController(rs app.IRoleService) *RolePrivateController {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Security ApiKeyAuth
+// @Security BasicAuth
 // @Router /private/roles/{id} [put]
 func (c *RolePrivateController) UpdateRole(ctx *gin.Context) {
 	idParam := ctx.Param("id")
@@ -69,7 +69,7 @@ func (c *RolePrivateController) UpdateRole(ctx *gin.Context) {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Security ApiKeyAuth
+// @Security BasicAuth
 // @Router /private/roles/{id} [delete]
 func (c *RolePrivateController) DisableRole(ctx *gin.Context) {
 	idParam := ctx.Param("id")

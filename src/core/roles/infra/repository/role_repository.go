@@ -22,7 +22,7 @@ func (r *roleRepository) Create(ctx context.Context, role *models.Role) error {
 
 func (r *roleRepository) FindByName(ctx context.Context, name string) (*models.Role, error) {
 	var role models.Role
-	err := r.db.WithContext(ctx).Where("name = ?", name).First(&role).Error
+	err := r.db.WithContext(ctx).Where("name = ? and is_active = ?", name, true).First(&role).Error
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +54,6 @@ func (r *roleRepository) FindAll(ctx context.Context) ([]models.Role, error) {
 
 func (r *roleRepository) GetRoles() ([]models.Role, error) {
 	var roles []models.Role
-	err := r.db.Find(&roles).Error
+	err := r.db.Find(&roles).Where("is_active = ?", true).Error
 	return roles, err
 }
