@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"gestrym/src/common/utils"
+	jwt_structs "gestrym/src/core/jwt/domain/structs"
 	"net/http"
 	"strings"
 
@@ -10,13 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/spf13/viper"
 )
-
-type CustomClaims struct {
-	jwt.RegisteredClaims
-	UserID        uint `json:"user_id"`
-	RoleID        uint `json:"role_id"`
-	AccessLevelID uint `json:"access_level_id"`
-}
 
 var (
 	logger               = utils.NewLogger()
@@ -33,19 +27,15 @@ func ValidateTokenMiddleware(jwtKey []byte) gin.HandlerFunc {
 			return
 		}
 
-		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			logger.Error("[JWT_AUTHENTICATION_FAILED] %v", ErrMissingAuthHeader)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": ErrMissingAuthHeader.Error()})
 			return
 		}
 
-		tokenStr := authHeader
-		if strings.HasPrefix(strings.ToLower(authHeader), "Bearer") {
-			tokenStr = strings.TrimSpace(authHeader[7:])
-		}
-
-		claims := &CustomClaims{}
+		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+		claims := &jwt_structs.CustomClaims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				logger.Error("[JWT_AUTHENTICATION_FAILED] %v", ErrInvalidSignature)

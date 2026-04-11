@@ -39,3 +39,4 @@ node_modules/
 .key
 .pem
 .env_local.yaml
+.__debug_bin*

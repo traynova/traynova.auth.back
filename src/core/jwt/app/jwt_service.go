@@ -60,6 +60,7 @@ func NewJWTService(refreshRepo jwt_ports.IRefreshTokenRepository, userTokenRepo 
 		jwtServiceInstance = &jwtService{
 			logger:                 logger,
 			expiration:             time.Duration(expirationMinutes) * time.Minute,
+			jwtkey:                 jwtKey,
 			refreshTokenRepository: refreshRepo,
 			userTokenRepository:    userTokenRepo,
 		}
