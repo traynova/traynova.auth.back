@@ -38,5 +38,4 @@ node_modules/
 .cert
 .key
 .pem
-.env_local.yaml
 .__debug_bin*
