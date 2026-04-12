@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -47,6 +48,10 @@ func (a *AuthPublicController) Register() gin.HandlerFunc {
 		response, err := a.authService.RegisterUser(*createUserRequest)
 		if err != nil {
 			a.logger.Error("Error while creating user", err)
+			if errors.Is(err, app.ErrEmailAlreadyExists) || errors.Is(err, app.ErrEmailActiveDifferentRole) {
+				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}

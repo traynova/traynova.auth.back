@@ -198,6 +198,9 @@
 
 * **URLs del servicio de notificaciones externalizadas:**
   - `sendConfirmationEmail` y `sendPasswordRecoveryEmail` ahora leen `NOTIFICATION_SERVICE_URL` y `DASHBOARD_URL` desde Viper (variables de entorno).
+* **Validación de duplicados en registro:**
+  - El registro ahora rechaza con `409 Conflict` cuando ya existe un usuario activo con el mismo email y rol.
+  - Si el email existe con un rol distinto, se retorna un error específico y no se sobrescribe el usuario.
   - Fallback a `http://localhost:8443` y `http://localhost:3000` si no se configuran.
   - Nuevas variables documentadas en `.env.example`.
 

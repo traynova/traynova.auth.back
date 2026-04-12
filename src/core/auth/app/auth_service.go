@@ -39,6 +39,11 @@ type IAuthService interface {
 	GetClientsByUser(userID uint, roleID uint) (interface{}, error)
 }
 
+var (
+	ErrEmailAlreadyExists       = errors.New("ya existe un usuario con ese email")
+	ErrEmailActiveDifferentRole = errors.New("ya existe un usuario activo con ese email y rol diferente")
+)
+
 type authService struct {
 	userRepo      ports_auth.IAuthRepository
 	jwt_app       jwt_service.IJWTService
@@ -119,13 +124,14 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*struct
 	var user *models.User
 	if existingUser != nil && existingUser.ID != 0 {
 		if existingUser.RoleID != req.RoleID {
-			return nil, errors.New("ya existe un usuario activo con ese email y rol diferente")
+			return nil, ErrEmailActiveDifferentRole
 		}
 
-		if !existingUser.IsActive {
-			existingUser.IsActive = true
+		if existingUser.IsActive {
+			return nil, ErrEmailAlreadyExists
 		}
 
+		existingUser.IsActive = true
 		if err := s.updateUserFields(existingUser, req); err != nil {
 			return nil, err
 		}
