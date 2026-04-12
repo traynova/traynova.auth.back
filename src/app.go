@@ -34,19 +34,22 @@ func Run(isLocalEnv bool) {
 
 func setupEnvironment(isLocalEnv bool) error {
 	if isLocalEnv {
-		logger.Info("[TRAYNOVA_AUTH] server started in development mode")
+		logger.Info("[TRAYNOVA_NOTIFICATION] server started in development mode")
+
 		viper.SetConfigFile(EnvLocalConfigFile)
+
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("error reading local env file: %v", err)
+		}
 	} else {
-		logger.Info("[TRAYNOVA_AUTH] server started in production mode")
-		viper.SetConfigFile(EnvProductionConfigFile)
+		logger.Info("[TRAYNOVA_NOTIFICATION] server started in production mode")
+
+		// 🔥 IMPORTANTE: NO leer archivo en producción
+		logger.Info("Using environment variables (Render)")
 	}
 
+	// 👉 SIEMPRE leer variables de entorno
 	viper.AutomaticEnv()
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		return fmt.Errorf("error reading env file: %v", err)
-	}
 
 	return nil
 }
