@@ -2,7 +2,7 @@
 # TLS
 TLS_CERT: "../deployment/certs/cert.pem"
 TLS_KEY: "../deployment/certs/key.pem"
-GESTRYM_SERVER_ADDRESS: localhost:60188
+GESTRYM_SERVER_ADDRESS: :60188
 GOOGLE_CLIENT_ID: "your-google-client-id.apps.googleusercontent.com"
 JWT_KEY: "traynova"
 POSTGRES_DB_HOST: metro.proxy.rlwy.net
