@@ -18,7 +18,9 @@ import (
 	jwt_service "gestrym/src/core/jwt/app"
 	jwt_requests "gestrym/src/core/jwt/domain/structs/request"
 	token_types_ports "gestrym/src/core/token_types/domain/ports"
+	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -82,20 +84,74 @@ func getDashboardURL() string {
 	return url
 }
 
+func getNotificationAPIKey() string {
+	apiKey := viper.GetString("X_API_KEY")
+	if apiKey == "" {
+		apiKey = viper.GetString("AUTH_API_KEY")
+	}
+	return apiKey
+}
+
+func getEmailConfirmationURL(token string) string {
+	url := viper.GetString("EMAIL_CONFIRMATION_URL")
+	if url != "" {
+		if strings.Contains(url, "?") {
+			return fmt.Sprintf("%s&token=%s", url, token)
+		}
+		return fmt.Sprintf("%s?token=%s", url, token)
+	}
+	return fmt.Sprintf("%s/confirmar?token=%s", getDashboardURL(), token)
+}
+
+func getSupportEmail() string {
+	support := viper.GetString("SUPPORT_EMAIL")
+	if support == "" {
+		support = "soporte@gestrym.app"
+	}
+	return support
+}
+
 func sendConfirmationEmail(user *models.User, name, token string) error {
 	payload := map[string]interface{}{
-		"user_id":       user.ID,
-		"email":         user.Email,
-		"user_name":     name,
-		"confirm_token": token,
-		"dashboard_url": getDashboardURL(),
+		"type":          "EMAIL",
+		"subject":       "Confirma tu cuenta en Gestrym",
+		"template_name": "account_confirmation",
+		"template_data": map[string]interface{}{
+			"name":          name,
+			"action_url":    getEmailConfirmationURL(token),
+			"image_url":     "https://tu-dominio.com/assets/logo.png",
+			"support_email": getSupportEmail(),
+		},
+		"recipients": []string{user.Email},
 	}
-	jsonPayload, _ := json.Marshal(payload)
-	notificationURL := fmt.Sprintf("%s/traynova-notification/public/send-confirmation", getNotificationBaseURL())
-	_, err := http.Post(notificationURL, "application/json", bytes.NewBuffer(jsonPayload))
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("error serializando payload de notificación: %w", err)
+	}
+
+	notificationURL := fmt.Sprintf("%s/gestrym-notification/protected/notifications/send", getNotificationBaseURL())
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, notificationURL, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("error creando request al servicio de notificaciones: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if apiKey := getNotificationAPIKey(); apiKey != "" {
+		req.Header.Set("X-API-Key", apiKey)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error al contactar servicio de notificaciones: %w", err)
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("error en servicio de notificaciones: status %d body %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
 	return nil
 }
 

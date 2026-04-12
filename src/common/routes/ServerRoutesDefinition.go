@@ -63,6 +63,9 @@ func NewRoutesDefinition(serverInstance *gin.Engine) *routesDefinition {
 	routesOnce.Do(func() {
 		routesInstance = &routesDefinition{}
 		routesInstance.logger = utils.NewLogger()
+		docs.SwaggerInfo.Title = "Simon Auth API"
+		docs.SwaggerInfo.Description = "API para el registro y autenticacion de usuarios"
+		docs.SwaggerInfo.Version = "1.0"
 		docs.SwaggerInfo.BasePath = "/gestrym-auth"
 		routesInstance.addCORSConfig(serverInstance)
 		routesInstance.addRoutes(serverInstance)

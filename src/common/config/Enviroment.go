@@ -27,6 +27,8 @@ type env struct {
 	API_KEY                string `mapstructure:"API_KEY" validate:"required"`
 	X_API_KEY              string `mapstructure:"X_API_KEY" validate:"required"`
 	GESTRYM_SERVER_ADDRESS string `mapstructure:"GESTRYM_SERVER_ADDRESS" validate:"required"`
+	EMAIL_CONFIRMATION_URL string `mapstructure:"EMAIL_CONFIRMATION_URL"`
+	SUPPORT_EMAIL          string `mapstructure:"SUPPORT_EMAIL"`
 }
 
 func (v *env) Validate() error {
