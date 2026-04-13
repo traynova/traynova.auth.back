@@ -213,3 +213,23 @@
   - Corregidos en `login_service.go`, `login_repository.go`, `login_controller.go` y `ServerRoutesDefinition.go`.
   - El proyecto compila exitosamente (`go build ./...`).
 
+## 12. ✅ Cambios más recientes (2026-04-12)
+
+* **Sistema Unificado de Notificaciones por Plantillas:**
+  - Se migró el envío de correos a un formato estructurado compatible con el servicio de notificaciones pro.
+  - El payload incluye `type: "EMAIL"`, `template_name`, `template_data` (con `name`, `action_url`, `image_url`, `support_email`) y `recipients`.
+  - Implementada plantilla `account_confirmation`.
+  - Implementada plantilla `recovery_password` para el flujo de restauración de contraseña.
+
+* **Gestión de Relaciones y Listado de Clientes/Entrenadores:**
+  - Nuevo método `GetClientsByUser` que permite a Coaches ver sus clientes (independientes y por gimnasio) y a Gimnasios ver sus entrenadores con sus respectivos clientes.
+  - Diferenciación clara entre perfiles de negocio (`TrainerProfile`, `GymProfile`) y asociaciones (`TrainerClient`, `GymClient`).
+
+* **Mejoras en el Servicio de Tokens:**
+  - Refuerzo en la validación de tokens de activación y recuperación mediante `UserToken`.
+  - Se añadió validación de expiración para el último token de activación generado.
+
+* **Configuración y URLs:**
+  - Se utiliza `X_API_KEY` para autorizar peticiones al servicio de notificaciones.
+  - URLs de acción construidas dinámicamente usando `DASHBOARD_URL` como base.
+

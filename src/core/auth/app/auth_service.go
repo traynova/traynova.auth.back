@@ -68,31 +68,8 @@ func generateToken() string {
 	return hex.EncodeToString(b)
 }
 
-func getNotificationBaseURL() string {
-	url := viper.GetString("NOTIFICATION_SERVICE_URL")
-	if url == "" {
-		url = "http://localhost:8443"
-	}
-	return url
-}
-
-func getDashboardURL() string {
-	url := viper.GetString("DASHBOARD_URL")
-	if url == "" {
-		url = "http://localhost:3000"
-	}
-	return url
-}
-
-func getNotificationAPIKey() string {
-	apiKey := viper.GetString("X_API_KEY")
-	if apiKey == "" {
-		apiKey = viper.GetString("AUTH_API_KEY")
-	}
-	return apiKey
-}
-
 func getEmailConfirmationURL(token string) string {
+	urlConfirm := viper.GetString("DASHBOARD_URL")
 	url := viper.GetString("EMAIL_CONFIRMATION_URL")
 	if url != "" {
 		if strings.Contains(url, "?") {
@@ -100,7 +77,15 @@ func getEmailConfirmationURL(token string) string {
 		}
 		return fmt.Sprintf("%s?token=%s", url, token)
 	}
-	return fmt.Sprintf("%s/confirmar?token=%s", getDashboardURL(), token)
+	return fmt.Sprintf("%s/gestrym-auth/public/auth/confirm?token=%s", urlConfirm, token)
+}
+
+func getPasswordRecoveryURL(token string) string {
+	urlConfirm := viper.GetString("DASHBOARD_URL")
+	if urlConfirm == "" {
+		urlConfirm = "http://localhost:3000"
+	}
+	return fmt.Sprintf("%s/reset-password?token=%s", urlConfirm, token)
 }
 
 func getSupportEmail() string {
@@ -119,7 +104,7 @@ func sendConfirmationEmail(user *models.User, name, token string) error {
 		"template_data": map[string]interface{}{
 			"name":          name,
 			"action_url":    getEmailConfirmationURL(token),
-			"image_url":     "https://tu-dominio.com/assets/logo.png",
+			"image_url":     "https://thumbs.dreamstime.com/b/logotipo-del-gimnasio-plantilla-dise%C3%B1o-centro-de-aptitud-barbell-negro-aislado-en-el-fondo-blanco-103252465.jpg",
 			"support_email": getSupportEmail(),
 		},
 		"recipients": []string{user.Email},
@@ -129,14 +114,17 @@ func sendConfirmationEmail(user *models.User, name, token string) error {
 	if err != nil {
 		return fmt.Errorf("error serializando payload de notificación: %w", err)
 	}
+	url := viper.GetString("NOTIFICATION_SERVICE_URL")
 
-	notificationURL := fmt.Sprintf("%s/gestrym-notification/protected/notifications/send", getNotificationBaseURL())
+	notificationURL := fmt.Sprintf("%s/gestrym-notification/protected/notifications/send", url)
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, notificationURL, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return fmt.Errorf("error creando request al servicio de notificaciones: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if apiKey := getNotificationAPIKey(); apiKey != "" {
+	apiKey := viper.GetString("X_API_KEY")
+
+	if apiKey := apiKey; apiKey != "" {
 		req.Header.Set("X-API-Key", apiKey)
 	}
 
@@ -157,17 +145,48 @@ func sendConfirmationEmail(user *models.User, name, token string) error {
 
 func sendPasswordRecoveryEmail(user *models.User, token string) error {
 	payload := map[string]interface{}{
-		"user_id":       user.ID,
-		"email":         user.Email,
-		"reset_token":   token,
-		"dashboard_url": getDashboardURL(),
+		"type":          "EMAIL",
+		"subject":       "Recupera tu contraseña en Gestrym",
+		"template_name": "recovery_password",
+		"template_data": map[string]interface{}{
+			"name":          user.FullName,
+			"action_url":    getPasswordRecoveryURL(token),
+			"image_url":     "https://thumbs.dreamstime.com/b/logotipo-del-gimnasio-plantilla-dise%C3%B1o-centro-de-aptitud-barbell-negro-aislado-en-el-fondo-blanco-103252465.jpg",
+			"support_email": getSupportEmail(),
+		},
+		"recipients": []string{user.Email},
 	}
-	jsonPayload, _ := json.Marshal(payload)
-	notificationURL := fmt.Sprintf("%s/traynova-notification/public/send-password-recovery", getNotificationBaseURL())
-	_, err := http.Post(notificationURL, "application/json", bytes.NewBuffer(jsonPayload))
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("error serializando payload de recuperación: %w", err)
+	}
+	url := viper.GetString("NOTIFICATION_SERVICE_URL")
+
+	notificationURL := fmt.Sprintf("%s/gestrym-notification/protected/notifications/send", url)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, notificationURL, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("error creando request al servicio de notificaciones: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	apiKey := viper.GetString("X_API_KEY")
+
+	if apiKey != "" {
+		req.Header.Set("X-API-Key", apiKey)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error al contactar servicio de notificaciones: %w", err)
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("error en servicio de notificaciones: status %d body %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
 	return nil
 }
 

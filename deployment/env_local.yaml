@@ -15,3 +15,6 @@ BASIC_AUTH_USERNAME: "trayuser"
 BASIC_AUTH_PASSWORD: "traypass"
 
 AUTH_API_KEY: JDFNME5NMFYxTDFENEQ=
+NOTIFICATION_SERVICE_URL: https://gestrym-notification.onrender.com
+DASHBOARD_URL: https://traynova-auth-back.onrender.com
+X_API_KEY: $1M0NM0V1L1D4D
