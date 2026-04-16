@@ -7,6 +7,6 @@ type Role struct {
 
 	ID          uint   `gorm:"primaryKey" json:"id"`
 	Name        string `gorm:"type:varchar(50);uniqueIndex;not null" json:"name"`
-	Description string `gorm:"type:varchar(255)" json:"description"`
+	Description string `json:"description"`
 	IsActive    bool   `gorm:"default:true" json:"is_active"`
 }

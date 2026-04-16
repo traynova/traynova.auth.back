@@ -1,10 +1,10 @@
 GESTRYM_SERVER_ADDRESS: :60188
 GOOGLE_CLIENT_ID: "your-google-client-id.apps.googleusercontent.com"
 JWT_KEY: "traynova"
-POSTGRES_DB_HOST: metro.proxy.rlwy.net
-POSTGRES_DB_PORT: 57391
+POSTGRES_DB_HOST: monorail.proxy.rlwy.net
+POSTGRES_DB_PORT: 10091
 POSTGRES_DB_USER: postgres
-POSTGRES_DB_PASSWORD: idhwzkplhmeFYIbyHouyjZpboiqdfJbG
+POSTGRES_DB_PASSWORD: kXeEJfMNzSckrCaRrireMPBWPsOYAhli
 POSTGRES_DB_NAME: postgres
 POSTGRES_DB_SSLMODE: disable
 

@@ -34,7 +34,7 @@ func Run(isLocalEnv bool) {
 
 func setupEnvironment(isLocalEnv bool) error {
 	if isLocalEnv {
-		logger.Info("[TRAYNOVA_NOTIFICATION] server started in development mode")
+		logger.Info("[GESTRYM_AUTH] server started in development mode")
 
 		viper.SetConfigFile(EnvLocalConfigFile)
 
@@ -42,13 +42,11 @@ func setupEnvironment(isLocalEnv bool) error {
 			return fmt.Errorf("error reading local env file: %v", err)
 		}
 	} else {
-		logger.Info("[TRAYNOVA_NOTIFICATION] server started in production mode")
+		logger.Info("[GESTRYM_AUTH] server started in production mode")
 
-		// 🔥 IMPORTANTE: NO leer archivo en producción
 		logger.Info("Using environment variables (Render)")
 	}
 
-	// 👉 SIEMPRE leer variables de entorno
 	viper.AutomaticEnv()
 
 	return nil
@@ -58,7 +56,7 @@ func initServer() {
 	address := viper.GetString("GESTRYM_SERVER_ADDRESS")
 	ginMode := viper.GetString("GIN_MODE")
 	if address == "" {
-		logger.Fatal("Server address env 'TRAYNOVA_SERVER_ADDRESS' not set")
+		logger.Fatal("Server address env 'GESTRYM_SERVER_ADDRESS' not set")
 	}
 	if ginMode == "" {
 		logger.Fatal("GIN mode env 'GIN_MODE' not set")
@@ -68,7 +66,7 @@ func initServer() {
 	serverInstance := gin.Default()
 	routes.NewRoutesDefinition(serverInstance)
 
-	logger.Info("[TRAYNOVA_AUTH] Start server on -> %v", address)
+	logger.Info("[GESTRYM_AUTH] Start server on -> %v", address)
 	if err := serverInstance.Run(address); err != nil {
 		logger.Fatal("Failed to start server: %v", err)
 	}

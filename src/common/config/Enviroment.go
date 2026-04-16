@@ -66,10 +66,10 @@ func InitEnvironment(isLocalEnv bool) {
 	envOnce.Do(func() {
 		// Seleccionar el archivo de configuración dependiendo del entorno
 		if isLocalEnv {
-			logger.Info("[TRAYNOVA_AUTH] servidor iniciado en modo local")
+			logger.Info("[GESTRYM_AUTH] servidor iniciado en modo local")
 			viper.SetConfigFile(envLocalConfigFile)
 		} else {
-			logger.Info("[TRAYNOVA_AUTH] servidor iniciado en modo producción")
+			logger.Info("[GESTRYM_AUTH] servidor iniciado en modo producción")
 		}
 
 		// Leer las variables de entorno
