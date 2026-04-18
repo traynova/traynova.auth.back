@@ -96,70 +96,10 @@ func getSupportEmail() string {
 	return support
 }
 
-func sendConfirmationEmail(user *models.User, name, token string) error {
-	payload := map[string]interface{}{
-		"type":          "EMAIL",
-		"subject":       "Confirma tu cuenta en Gestrym",
-		"template_name": "account_confirmation",
-		"template_data": map[string]interface{}{
-			"name":          name,
-			"action_url":    getEmailConfirmationURL(token),
-			"image_url":     "https://thumbs.dreamstime.com/b/logotipo-del-gimnasio-plantilla-dise%C3%B1o-centro-de-aptitud-barbell-negro-aislado-en-el-fondo-blanco-103252465.jpg",
-			"support_email": getSupportEmail(),
-		},
-		"recipients": []string{user.Email},
-	}
-
+func sendNotification(payload map[string]interface{}) error {
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("error serializando payload de notificación: %w", err)
-	}
-	url := viper.GetString("NOTIFICATION_SERVICE_URL")
-
-	notificationURL := fmt.Sprintf("%s/gestrym-notification/protected/notifications/send", url)
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, notificationURL, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return fmt.Errorf("error creando request al servicio de notificaciones: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	apiKey := viper.GetString("X_API_KEY")
-
-	if apiKey := apiKey; apiKey != "" {
-		req.Header.Set("X-API-Key", apiKey)
-	}
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("error al contactar servicio de notificaciones: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("error en servicio de notificaciones: status %d body %s", resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-
-	return nil
-}
-
-func sendPasswordRecoveryEmail(user *models.User, token string) error {
-	payload := map[string]interface{}{
-		"type":          "EMAIL",
-		"subject":       "Recupera tu contraseña en Gestrym",
-		"template_name": "recovery_password",
-		"template_data": map[string]interface{}{
-			"name":          user.FullName,
-			"action_url":    getPasswordRecoveryURL(token),
-			"image_url":     "https://thumbs.dreamstime.com/b/logotipo-del-gimnasio-plantilla-dise%C3%B1o-centro-de-aptitud-barbell-negro-aislado-en-el-fondo-blanco-103252465.jpg",
-			"support_email": getSupportEmail(),
-		},
-		"recipients": []string{user.Email},
-	}
-
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("error serializando payload de recuperación: %w", err)
 	}
 	url := viper.GetString("NOTIFICATION_SERVICE_URL")
 
@@ -188,6 +128,68 @@ func sendPasswordRecoveryEmail(user *models.User, token string) error {
 	}
 
 	return nil
+}
+
+func sendConfirmationEmail(user *models.User, name, token string) error {
+	payload := map[string]interface{}{
+		"type":          "EMAIL",
+		"subject":       "Confirma tu cuenta en Gestrym",
+		"template_name": "account_confirmation",
+		"template_data": map[string]interface{}{
+			"name":          name,
+			"action_url":    getEmailConfirmationURL(token),
+			"image_url":     "https://thumbs.dreamstime.com/b/logotipo-del-gimnasio-plantilla-dise%C3%B1o-centro-de-aptitud-barbell-negro-aislado-en-el-fondo-blanco-103252465.jpg",
+			"support_email": getSupportEmail(),
+		},
+		"recipients": []string{user.Email},
+	}
+
+	return sendNotification(payload)
+}
+
+func sendPasswordRecoveryEmail(user *models.User, token string) error {
+	payload := map[string]interface{}{
+		"type":          "EMAIL",
+		"subject":       "Recupera tu contraseña en Gestrym",
+		"template_name": "recovery_password",
+		"template_data": map[string]interface{}{
+			"name":          user.FullName,
+			"action_url":    getPasswordRecoveryURL(token),
+			"image_url":     "https://thumbs.dreamstime.com/b/logotipo-del-gimnasio-plantilla-dise%C3%B1o-centro-de-aptitud-barbell-negro-aislado-en-el-fondo-blanco-103252465.jpg",
+			"support_email": getSupportEmail(),
+		},
+		"recipients": []string{user.Email},
+	}
+
+	return sendNotification(payload)
+}
+
+func sendConfirmationSMS(user *models.User, name, token string) error {
+	payload := map[string]interface{}{
+		"type":          "SMS",
+		"template_name": "account_confirmation",
+		"template_data": map[string]interface{}{
+			"name":       name,
+			"action_url": getEmailConfirmationURL(token),
+		},
+		"recipients": []string{user.Prefix + user.Phone},
+	}
+
+	return sendNotification(payload)
+}
+
+func sendPasswordRecoverySMS(user *models.User, token string) error {
+	payload := map[string]interface{}{
+		"type":          "SMS",
+		"template_name": "recovery_password",
+		"template_data": map[string]interface{}{
+			"name":       user.FullName,
+			"action_url": getPasswordRecoveryURL(token),
+		},
+		"recipients": []string{user.Prefix + user.Phone},
+	}
+
+	return sendNotification(payload)
 }
 
 func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*structs_response.RegisterResponse, error) {
@@ -287,6 +289,11 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*struct
 	errNotification := sendConfirmationEmail(user, user.FullName, jwtToken)
 	if errNotification != nil {
 		s.logger.Error("error enviando email de confirmación: " + errNotification.Error())
+	}
+
+	errSMSNotification := sendConfirmationSMS(user, user.FullName, jwtToken)
+	if errSMSNotification != nil {
+		s.logger.Error("error enviando SMS de confirmación: " + errSMSNotification.Error())
 	}
 
 	authResponse := &structs_response.RegisterResponse{
@@ -650,7 +657,11 @@ func (s *authService) RequestPasswordRecovery(email string) error {
 	}
 
 	if err := sendPasswordRecoveryEmail(user, token); err != nil {
-		return errors.New("error enviando email de recuperación")
+		s.logger.Error("error enviando email de recuperación: " + err.Error())
+	}
+
+	if err := sendPasswordRecoverySMS(user, token); err != nil {
+		s.logger.Error("error enviando SMS de recuperación: " + err.Error())
 	}
 
 	return nil
