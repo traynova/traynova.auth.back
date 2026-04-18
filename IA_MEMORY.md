@@ -233,3 +233,17 @@
   - Se utiliza `X_API_KEY` para autorizar peticiones al servicio de notificaciones.
   - URLs de acción construidas dinámicamente usando `DASHBOARD_URL` como base.
 
+
+
+## 13. ✅ Cambios más recientes (2026-04-18)
+
+* **Integración con Microservicio Externo de Storage y Branding:**
+  - Se añadió el campo `CollectionID` (string) a los modelos `User`, `GymProfile` y `TrainerProfile`.
+  - **Separación de Flujos:** El registro de usuario ahora solo requiere información principal. Los archivos y colores se manejan en un endpoint dedicado.
+  - **Nuevo Endpoint de Branding:** `POST /private/auth/branding` (multipart/form-data)
+    - Permite subir `avatar` (para el usuario) y `logo` (para el gimnasio).
+    - Permite actualizar `primary_color` y `secondary_color`.
+    - El servicio `auth-service` actúa como puente, subiendo los archivos al microservicio `gestrym-storage` y guardando los `collection_id` retornados.
+  - **Limpieza de Registro:** Se eliminaron los campos de branding de `RegisterRequest` para simplificar el alta de usuarios.
+  - **Persistencia:** Los colores y logos se guardan en `GymProfile` o `TrainerProfile` según el rol, y el avatar principal se guarda en el modelo `User`.
+

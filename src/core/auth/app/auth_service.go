@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"mime/multipart"
 )
 
 type IAuthService interface {
@@ -39,6 +40,7 @@ type IAuthService interface {
 	ResetPassword(req structs_request.PasswordResetRequest) (*structs_response.GetUserResponse, error)
 	ValidateToken(token string) (*structs_response.ValidateTokenResponse, error)
 	GetClientsByUser(userID uint, roleID uint) (interface{}, error)
+	UpdateBranding(userID uint, avatar *multipart.FileHeader, logo *multipart.FileHeader, primaryColor, secondaryColor *string) error
 }
 
 var (
@@ -303,7 +305,9 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*struct
 		Phone:  user.Phone,
 		RoleID: user.RoleID,
 		Token:  jwtToken,
+		CollectionID: user.CollectionID,
 	}
+
 
 	return authResponse, nil
 }
@@ -376,8 +380,7 @@ func (s *authService) createOrUpdateGymProfile(userID uint, req structs_request.
 				Department:     *req.Department,
 				Country:        *req.Country,
 				Workstation:    req.Workstation,
-				PrimaryColor:   req.PrimaryColor,
-				SecondaryColor: req.SecondaryColor,
+				SecondaryColor: nil,
 				ReferralCode:   req.ReferralCode,
 			}
 			_, err = s.userRepo.CreateGymProfile(gymProfile)
@@ -396,8 +399,6 @@ func (s *authService) createOrUpdateGymProfile(userID uint, req structs_request.
 		gymProfile.Country = *req.Country
 	}
 	gymProfile.Workstation = req.Workstation
-	gymProfile.PrimaryColor = req.PrimaryColor
-	gymProfile.SecondaryColor = req.SecondaryColor
 	gymProfile.ReferralCode = req.ReferralCode
 
 	_, err = s.userRepo.UpdateGymProfile(gymProfile)
@@ -409,12 +410,9 @@ func (s *authService) createOrUpdateTrainerProfile(userID uint, gymUserID *uint,
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			trainerProfile = &models.TrainerProfile{
-				UserID:         userID,
-				GimID:          gymUserID,
-				PrimaryColor:   req.PrimaryColor,
-				SecondaryColor: req.SecondaryColor,
-				FilesID:        req.AvatarFileID,
-				ReferralCode:   req.ReferralCode,
+				UserID:       userID,
+				GimID:        gymUserID,
+				ReferralCode: req.ReferralCode,
 			}
 			_, err = s.userRepo.CreateTrainerProfile(trainerProfile)
 			return err
@@ -423,15 +421,6 @@ func (s *authService) createOrUpdateTrainerProfile(userID uint, gymUserID *uint,
 	}
 
 	trainerProfile.GimID = gymUserID
-	if req.PrimaryColor != nil {
-		trainerProfile.PrimaryColor = req.PrimaryColor
-	}
-	if req.SecondaryColor != nil {
-		trainerProfile.SecondaryColor = req.SecondaryColor
-	}
-	if req.AvatarFileID != nil {
-		trainerProfile.FilesID = req.AvatarFileID
-	}
 	trainerProfile.ReferralCode = req.ReferralCode
 
 	_, err = s.userRepo.UpdateTrainerProfile(trainerProfile)
@@ -557,6 +546,10 @@ func (s *authService) UpdateUser(userID uint, req structs_request.UpdateUserRequ
 			return nil, errors.New("error al hashear la contraseña")
 		}
 		user.Password = string(hashedPassword)
+	}
+
+	if req.AvatarCollectionID != nil {
+		user.CollectionID = *req.AvatarCollectionID
 	}
 
 	updatedUser, err := s.userRepo.UpdateUser(user)
@@ -732,7 +725,132 @@ func buildUserResponse(user *models.User) *structs_response.GetUserResponse {
 		RoleName:       user.Role.Name,
 		IsActive:       user.IsActive,
 		EmailConfirmed: user.EmailConfirmed,
+		CollectionID:   user.CollectionID,
 	}
+}
+
+func (s *authService) UpdateBranding(userID uint, avatar *multipart.FileHeader, logo *multipart.FileHeader, primaryColor, secondaryColor *string) error {
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	if avatar != nil {
+		collectionID, err := s.uploadFileToStorage(avatar, "avatar_user")
+		if err != nil {
+			return err
+		}
+		user.CollectionID = collectionID
+		_, err = s.userRepo.UpdateUser(user)
+		if err != nil {
+			return err
+		}
+
+		trainer, err := s.userRepo.GetTrainerProfileByUserIDAndGymID(userID, nil)
+		if err == nil && trainer != nil {
+			trainer.CollectionID = collectionID
+			s.userRepo.UpdateTrainerProfile(trainer)
+		}
+	}
+
+	if user.RoleID == middleware.RoleGym {
+		gym, err := s.userRepo.GetGymProfileByUserID(userID)
+		if err == nil && gym != nil {
+			if primaryColor != nil {
+				gym.PrimaryColor = primaryColor
+			}
+			if secondaryColor != nil {
+				gym.SecondaryColor = secondaryColor
+			}
+			if logo != nil {
+				logoCID, err := s.uploadFileToStorage(logo, "logo_gym")
+				if err == nil {
+					gym.CollectionID = logoCID
+				}
+			}
+			_, err = s.userRepo.UpdateGymProfile(gym)
+			if err != nil {
+				return err
+			}
+		}
+	} else if user.RoleID == middleware.RoleCoach {
+		trainer, err := s.userRepo.GetTrainerProfileByUserIDAndGymID(userID, nil)
+		if err == nil && trainer != nil {
+			if primaryColor != nil {
+				trainer.PrimaryColor = primaryColor
+			}
+			if secondaryColor != nil {
+				trainer.SecondaryColor = secondaryColor
+			}
+			_, err = s.userRepo.UpdateTrainerProfile(trainer)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *authService) uploadFileToStorage(file *multipart.FileHeader, serviceName string) (string, error) {
+	storageURL := viper.GetString("STORAGE_SERVICE_URL")
+	if storageURL == "" {
+		storageURL = "http://localhost:60200"
+	}
+
+	uploadURL := fmt.Sprintf("%s/gestrym-storage/internal/files/upload", storageURL)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	part, err := writer.CreateFormFile("files", file.Filename)
+	if err != nil {
+		return "", err
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	_, err = io.Copy(part, src)
+	if err != nil {
+		return "", err
+	}
+
+	_ = writer.WriteField("service", serviceName)
+	err = writer.Close()
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", uploadURL, body)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("error in storage service: %s", string(respBody))
+	}
+
+	var result struct {
+		CollectionID string `json:"collection_id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	return result.CollectionID, nil
 }
 
 func (s *authService) GetClientsByUser(userID uint, roleID uint) (interface{}, error) {

@@ -16,6 +16,8 @@ type User struct {
 	EmailConfirmed    bool   `gorm:"default:false" json:"email_confirmed"`
 
 	RoleID uint `gorm:"not null" json:"role_id"`
+	CollectionID   string `json:"collection_id"`
+
 
 	Role Role `gorm:"foreignKey:RoleID" json:"role"`
 }

@@ -245,6 +245,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/private/auth/branding": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permite subir imagen de avatar para el usuario, logo para el gimnasio y definir colores institucionales.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Actualizar branding (avatar, logo, colores)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Imagen de avatar",
+                        "name": "avatar",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Imagen de logo (solo Gym)",
+                        "name": "logo",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Color primario",
+                        "name": "primary_color",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Color secundario",
+                        "name": "secondary_color",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/private/auth/relationships": {
             "get": {
                 "security": [
@@ -1278,9 +1347,6 @@ const docTemplate = `{
                 "role_id"
             ],
             "properties": {
-                "avatar_file_id": {
-                    "type": "integer"
-                },
                 "city": {
                     "type": "string"
                 },
@@ -1305,9 +1371,6 @@ const docTemplate = `{
                 "prefix": {
                     "type": "string"
                 },
-                "primary_color": {
-                    "type": "string"
-                },
                 "referral_code": {
                     "type": "string"
                 },
@@ -1322,9 +1385,6 @@ const docTemplate = `{
                 "role_id": {
                     "type": "integer"
                 },
-                "secondary_color": {
-                    "type": "string"
-                },
                 "source_id": {
                     "type": "integer"
                 },
@@ -1336,6 +1396,9 @@ const docTemplate = `{
         "structs_request.UpdateUserRequest": {
             "type": "object",
             "properties": {
+                "avatar_collection_id": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -1356,6 +1419,9 @@ const docTemplate = `{
         "structs_response.GetUserResponse": {
             "type": "object",
             "properties": {
+                "collection_id": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -1395,6 +1461,9 @@ const docTemplate = `{
                 "token"
             ],
             "properties": {
+                "collection_id": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },

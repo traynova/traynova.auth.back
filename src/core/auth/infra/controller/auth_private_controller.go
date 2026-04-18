@@ -8,7 +8,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"mime/multipart"
 )
+
 
 type AuthPrivateController struct {
 	authService app.IAuthService
@@ -222,3 +224,58 @@ func (a *AuthPrivateController) GetClientRelationships() gin.HandlerFunc {
 		c.JSON(http.StatusOK, response)
 	}
 }
+
+// @Summary Actualizar branding (avatar, logo, colores)
+// @Description Permite subir imagen de avatar para el usuario, logo para el gimnasio y definir colores institucionales.
+// @Tags Auth
+// @Accept multipart/form-data
+// @Produce json
+// @Param avatar formData file false "Imagen de avatar"
+// @Param logo formData file false "Imagen de logo (solo Gym)"
+// @Param primary_color formData string false "Color primario"
+// @Param secondary_color formData string false "Color secundario"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
+// @Router /private/auth/branding [post]
+func (a *AuthPrivateController) UpdateBranding() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "No se pudo obtener el ID del usuario del token"})
+			return
+		}
+
+		userID := userIDInterface.(uint)
+
+		var avatar *multipart.FileHeader
+		var logo *multipart.FileHeader
+
+		avatar, _ = c.FormFile("avatar")
+		logo, _ = c.FormFile("logo")
+
+		primaryColor := c.PostForm("primary_color")
+		secondaryColor := c.PostForm("secondary_color")
+
+		var pColor, sColor *string
+		if primaryColor != "" {
+			pColor = &primaryColor
+		}
+		if secondaryColor != "" {
+			sColor = &secondaryColor
+		}
+
+		err := a.authService.UpdateBranding(userID, avatar, logo, pColor, sColor)
+		if err != nil {
+			a.logger.Error("Error actualizando branding", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Branding actualizado correctamente"})
+	}
+}
+

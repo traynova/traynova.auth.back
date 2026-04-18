@@ -11,6 +11,8 @@ type TrainerProfile struct {
 
 	UserID  uint  `json:"user_id"`
 	FilesID *uint `json:"files_id"`
+	CollectionID    string `json:"collection_id"`
+
 	GimID   *uint `json:"gim_id"`
 
 	User           User            `gorm:"foreignKey:UserID" json:"user"`

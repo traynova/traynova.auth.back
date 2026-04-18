@@ -14,6 +14,8 @@ type GymProfile struct {
 	ReferralCode   *string `gorm:"type:varchar(100)" json:"referral_code"`
 
 	UserID  uint  `gorm:"uniqueIndex" json:"user_id"`
+	CollectionID    string `json:"collection_id"`
+
 	FilesID *uint `json:"files_id"`
 
 	User  User   `gorm:"foreignKey:UserID" json:"user"`

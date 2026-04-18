@@ -12,10 +12,9 @@ type RegisterRequest struct {
 	Department         *string `json:"department"`
 	Country            *string `json:"country"`
 	Workstation        *string `json:"workstation"`
-	PrimaryColor       *string `json:"primary_color"`
-	SecondaryColor     *string `json:"secondary_color"`
-	AvatarFileID       *uint   `json:"avatar_file_id"`
 	RegistrationSource string  `json:"registration_source" binding:"required,oneof=self gym trainer"`
+
+
 	SourceID           *uint   `json:"source_id"`
 }
 

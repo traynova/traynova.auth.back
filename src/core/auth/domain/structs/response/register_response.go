@@ -7,4 +7,6 @@ type RegisterResponse struct {
 	Phone  string `json:"phone" binding:"required"`
 	RoleID uint   `json:"role_id" binding:"required"`
 	Token  string `json:"token" binding:"required"`
+	CollectionID string `json:"collection_id"`
 }
+

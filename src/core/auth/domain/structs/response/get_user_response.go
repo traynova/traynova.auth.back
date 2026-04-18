@@ -10,4 +10,6 @@ type GetUserResponse struct {
 	RoleName       string `json:"role_name"`
 	IsActive       bool   `json:"is_active"`
 	EmailConfirmed bool   `json:"email_confirmed"`
+	CollectionID   string `json:"collection_id"`
 }
+
