@@ -42,6 +42,13 @@ func (s *loginService) Login(req structs_request.LoginRequest) (*structs_respons
 		return nil, errors.New("email no confirmado")
 	}
 
+	if user.InitialLogin == false {
+		err = s.repo.UpdateInitialLogin(user.Email)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	accessToken, err := s.jwtApp.GenerateJwtToken(jwt_requests.GenerateJwtTokenRequest{
 		UserID:        user.ID,
 		RoleID:        user.RoleID,
@@ -56,14 +63,6 @@ func (s *loginService) Login(req structs_request.LoginRequest) (*structs_respons
 	refreshToken, err := s.jwtApp.GenerateRefreshToken(user.ID)
 	if err != nil {
 		return nil, err
-	}
-
-	if user.InitialLogin == false {
-		err = s.repo.UpdateInitialLogin(user.Email)
-		if err != nil {
-			return nil, err
-		}
-		user.InitialLogin = false
 	}
 
 	return &structs_response.LoginResponse{

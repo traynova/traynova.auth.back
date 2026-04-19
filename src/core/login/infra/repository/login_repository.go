@@ -26,7 +26,7 @@ func (r *loginRepository) GetUserByEmail(email string) (*models.User, error) {
 func (r *loginRepository) UpdateInitialLogin(email string) error {
 	var user models.User
 
-	if err := r.db.Where("email = ?", email).First(&user).UpdateColumn("initial_login = ?", true).Error; err != nil {
+	if err := r.db.Where("email = ?", email).First(&user).UpdateColumn("initial_login", true).Error; err != nil {
 		return err
 	}
 	return nil
