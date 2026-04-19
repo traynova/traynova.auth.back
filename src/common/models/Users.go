@@ -14,10 +14,10 @@ type User struct {
 	AccessFailedCount int    `gorm:"default:0" json:"access_failed_count"`
 	LoguinMethodId    *uint  `json:"login_method_id"`
 	EmailConfirmed    bool   `gorm:"default:false" json:"email_confirmed"`
+	InitialLogin      bool   `gorm:"default:false" json:"initial_login"`
 
-	RoleID uint `gorm:"not null" json:"role_id"`
-	CollectionID   string `json:"collection_id"`
-
+	RoleID       uint   `gorm:"not null" json:"role_id"`
+	CollectionID string `json:"collection_id"`
 
 	Role Role `gorm:"foreignKey:RoleID" json:"role"`
 }

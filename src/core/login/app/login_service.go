@@ -2,11 +2,11 @@ package app
 
 import (
 	"errors"
+	jwt_service "gestrym/src/core/jwt/app"
+	jwt_requests "gestrym/src/core/jwt/domain/structs/request"
 	login_ports "gestrym/src/core/login/domain/ports"
 	structs_request "gestrym/src/core/login/domain/structs/request"
 	structs_response "gestrym/src/core/login/domain/structs/response"
-	jwt_service "gestrym/src/core/jwt/app"
-	jwt_requests "gestrym/src/core/jwt/domain/structs/request"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -58,10 +58,20 @@ func (s *loginService) Login(req structs_request.LoginRequest) (*structs_respons
 		return nil, err
 	}
 
+	if user.InitialLogin == false {
+		err = s.repo.UpdateInitialLogin(user.Email)
+		if err != nil {
+			return nil, err
+		}
+		user.InitialLogin = false
+	}
+
 	return &structs_response.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		RoleID:       user.RoleID,
 		Email:        user.Email,
+		ConfirmEmail: user.EmailConfirmed,
+		InitialLogin: user.InitialLogin,
 	}, nil
 }

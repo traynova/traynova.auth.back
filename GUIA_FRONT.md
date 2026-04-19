@@ -85,8 +85,6 @@ http://tu-servidor/gestrym-auth
   "phone": "3201112222",
   "role_id": 2,
   "registration_source": "self",
-  "primary_color": "#FF5733",
-  "secondary_color": "#333333"
 }
 ```
 
@@ -107,8 +105,6 @@ http://tu-servidor/gestrym-auth
   "city": "Bogotá",
   "department": "Cundinamarca",
   "country": "Colombia",
-  "primary_color": "#1A73E8",
-  "secondary_color": "#FFFFFF"
 }
 ```
 

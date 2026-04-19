@@ -5,4 +5,6 @@ type LoginResponse struct {
 	RefreshToken string `json:"refresh_token"`
 	RoleID       uint   `json:"role_id"`
 	Email        string `json:"email"`
+	ConfirmEmail bool   `json:"comfirm_email"`
+	InitialLogin bool   `json:"initial_login"`
 }
