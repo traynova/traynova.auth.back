@@ -8,10 +8,10 @@ import (
 
 // Role Constants
 const (
-	RoleCliente = 4
-	RoleCoach   = 3
-	RoleGym     = 2
-	RoleAdmin   = 1
+	RoleCliente = 1
+	RoleCoach   = 2
+	RoleGym     = 3
+	RoleAdmin   = 4
 )
 
 // RequireRoles verifica que el token JWT del usuario contenga alguno de los roles permitidos.

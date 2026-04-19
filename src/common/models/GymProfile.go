@@ -13,11 +13,10 @@ type GymProfile struct {
 	Workstation    *string `json:"workstation"`
 	ReferralCode   *string `gorm:"type:varchar(100)" json:"referral_code"`
 
-	UserID  uint  `gorm:"uniqueIndex" json:"user_id"`
-	CollectionID    string `json:"collection_id"`
+	UserID       uint   `gorm:"uniqueIndex" json:"user_id"`
+	CollectionID string `json:"collection_id"`
 
 	FilesID *uint `json:"files_id"`
 
-	User  User   `gorm:"foreignKey:UserID" json:"user"`
-	Files *Files `gorm:"foreignKey:FilesID" json:"files"`
+	User User `gorm:"foreignKey:UserID" json:"user"`
 }
