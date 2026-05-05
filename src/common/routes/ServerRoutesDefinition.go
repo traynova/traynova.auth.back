@@ -221,8 +221,15 @@ func (r *routesDefinition) addPrivateRoutes(
 	r.privateGroup.GET("/auth/users/:id", authPrivateController.GetUserByID())
 	r.privateGroup.PUT("/auth/users/:id", authPrivateController.UpdateUser())
 	r.privateGroup.DELETE("/auth/users/:id", authPrivateController.DeleteUser())
+	r.privateGroup.PATCH("/auth/users/:id/status", authPrivateController.ToggleUserStatus())
 	r.privateGroup.GET("/auth/relationships", authPrivateController.GetClientRelationships())
 	r.privateGroup.POST("/auth/branding", authPrivateController.UpdateBranding())
+
+	// Groups
+	r.privateGroup.POST("/auth/groups", authPrivateController.CreateGroup())
+	r.privateGroup.GET("/auth/groups", authPrivateController.GetGroups())
+	r.privateGroup.PUT("/auth/groups/:id", authPrivateController.UpdateGroup())
+	r.privateGroup.DELETE("/auth/groups/:id", authPrivateController.DeleteGroup())
 }
 
 

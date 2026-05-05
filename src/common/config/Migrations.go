@@ -26,6 +26,8 @@ func MigrateDB() (IDatabaseConnection, error) {
 		&models.GymProfile{},
 		&models.TrainerClient{},
 		&models.GymClient{},
+		&models.UserGroup{},
+		&models.UserGroupMember{},
 	)
 
 	if err != nil {

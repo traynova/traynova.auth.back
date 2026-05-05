@@ -23,24 +23,32 @@ import (
 	"strings"
 	"time"
 
+	"mime/multipart"
+
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"mime/multipart"
 )
 
 type IAuthService interface {
 	RegisterUser(req structs_request.RegisterRequest) (*structs_response.RegisterResponse, error)
-	GetAllUsers(page int, pageSize int, name string, dni string, email string, role_id uint) (shared.ResponsePaginate, error)
+	GetAllUsers(page int, pageSize int, name string, dni string, email string, role_id uint, groupID *uint) (shared.ResponsePaginate, error)
 	GetUserByID(userID uint) (*structs_response.GetUserResponse, error)
-	UpdateUser(userID uint, req structs_request.UpdateUserRequest) (*structs_response.GetUserResponse, error)
-	DeleteUser(userID uint) error
+	UpdateUser(requesterID uint, requesterRole uint, userID uint, req structs_request.UpdateUserRequest) (*structs_response.GetUserResponse, error)
+	DeleteUser(requesterID uint, requesterRole uint, userID uint) error
 	ActivateUser(token string) (*structs_response.GetUserResponse, error)
 	RequestPasswordRecovery(email string) error
 	ResetPassword(req structs_request.PasswordResetRequest) (*structs_response.GetUserResponse, error)
 	ValidateToken(token string) (*structs_response.ValidateTokenResponse, error)
 	GetClientsByUser(userID uint, roleID uint) (interface{}, error)
 	UpdateBranding(userID uint, avatar *multipart.FileHeader, logo *multipart.FileHeader, primaryColor, secondaryColor *string) error
+	ToggleUserStatus(requesterID uint, requesterRole uint, userID uint, active bool) error
+
+	// Groups
+	CreateGroup(ownerID uint, ownerRole uint, req structs_request.CreateGroupRequest) (*structs_response.GroupResponse, error)
+	UpdateGroup(ownerID uint, ownerRole uint, groupID uint, req structs_request.UpdateGroupRequest) (*structs_response.GroupResponse, error)
+	DeleteGroup(ownerID uint, ownerRole uint, groupID uint) error
+	GetGroups(ownerID uint, ownerRole uint) ([]structs_response.GroupResponse, error)
 }
 
 var (
@@ -299,15 +307,14 @@ func (s *authService) RegisterUser(req structs_request.RegisterRequest) (*struct
 	}
 
 	authResponse := &structs_response.RegisterResponse{
-		Id:     user.ID,
-		Email:  user.Email,
-		Name:   user.FullName,
-		Phone:  user.Phone,
-		RoleID: user.RoleID,
-		Token:  jwtToken,
+		Id:           user.ID,
+		Email:        user.Email,
+		Name:         user.FullName,
+		Phone:        user.Phone,
+		RoleID:       user.RoleID,
+		Token:        jwtToken,
 		CollectionID: user.CollectionID,
 	}
-
 
 	return authResponse, nil
 }
@@ -481,8 +488,8 @@ func (s *authService) createGymClient(clientID, gymUserID uint) error {
 	return err
 }
 
-func (s *authService) GetAllUsers(page int, pageSize int, name string, dni string, email string, roleId uint) (shared.ResponsePaginate, error) {
-	users, total, err := s.userRepo.GetAllUsers(page, pageSize, &name, &dni, &email)
+func (s *authService) GetAllUsers(page int, pageSize int, name string, dni string, email string, roleID uint, groupID *uint) (shared.ResponsePaginate, error) {
+	users, total, err := s.userRepo.GetAllUsers(page, pageSize, &name, &dni, &email, groupID)
 	if err != nil {
 		return shared.ResponsePaginate{}, err
 	}
@@ -517,7 +524,11 @@ func (s *authService) GetUserByID(userID uint) (*structs_response.GetUserRespons
 	return buildUserResponse(user), nil
 }
 
-func (s *authService) UpdateUser(userID uint, req structs_request.UpdateUserRequest) (*structs_response.GetUserResponse, error) {
+func (s *authService) UpdateUser(requesterID uint, requesterRole uint, userID uint, req structs_request.UpdateUserRequest) (*structs_response.GetUserResponse, error) {
+	if err := s.checkPermission(requesterID, requesterRole, userID); err != nil {
+		return nil, err
+	}
+
 	user, err := s.userRepo.GetUserByID(userID)
 	if err != nil {
 		return nil, err
@@ -560,7 +571,11 @@ func (s *authService) UpdateUser(userID uint, req structs_request.UpdateUserRequ
 	return buildUserResponse(updatedUser), nil
 }
 
-func (s *authService) DeleteUser(userID uint) error {
+func (s *authService) DeleteUser(requesterID uint, requesterRole uint, userID uint) error {
+	if err := s.checkPermission(requesterID, requesterRole, userID); err != nil {
+		return err
+	}
+
 	user, err := s.userRepo.GetUserByID(userID)
 	if err != nil {
 		return err
@@ -942,4 +957,250 @@ func (s *authService) getTrainersForGym(gymUserID uint) (interface{}, error) {
 	}
 
 	return structs_response.GymTrainersResponse{Trainers: trainers}, nil
+}
+func (s *authService) ToggleUserStatus(requesterID uint, requesterRole uint, userID uint, active bool) error {
+	if err := s.checkPermission(requesterID, requesterRole, userID); err != nil {
+		return err
+	}
+
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	user.IsActive = active
+	_, err = s.userRepo.UpdateUser(user)
+	return err
+}
+
+func (s *authService) CreateGroup(ownerID uint, ownerRole uint, req structs_request.CreateGroupRequest) (*structs_response.GroupResponse, error) {
+	group := &models.UserGroup{
+		Name: req.Name,
+	}
+
+	if ownerRole == middleware.RoleGym {
+		profile, err := s.userRepo.GetGymProfileByUserID(ownerID)
+		if err != nil {
+			return nil, errors.New("perfil de gimnasio no encontrado")
+		}
+		group.GymProfileID = &profile.ID
+	} else if ownerRole == middleware.RoleCoach {
+		profiles, err := s.userRepo.GetTrainerProfilesByUserID(ownerID)
+		if err != nil || len(profiles) == 0 {
+			return nil, errors.New("perfil de entrenador no encontrado")
+		}
+		group.TrainerProfileID = &profiles[0].ID // Usamos el primer perfil por simplicidad
+	} else {
+		return nil, errors.New("solo gimnasios o entrenadores pueden crear grupos")
+	}
+
+	group, err := s.userRepo.CreateGroup(group)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, userID := range req.UserIDs {
+		// Validar permiso sobre el usuario a agregar
+		if err := s.checkPermission(ownerID, ownerRole, userID); err == nil {
+			s.userRepo.AddGroupMember(&models.UserGroupMember{
+				UserGroupID: group.ID,
+				UserID:      userID,
+			})
+		}
+	}
+
+	return s.getGroupResponse(group.ID)
+}
+
+func (s *authService) UpdateGroup(ownerID uint, ownerRole uint, groupID uint, req structs_request.UpdateGroupRequest) (*structs_response.GroupResponse, error) {
+	group, err := s.userRepo.GetGroupByID(groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validar que el dueño sea quien edita
+	if ownerRole == middleware.RoleGym {
+		profile, _ := s.userRepo.GetGymProfileByUserID(ownerID)
+		if group.GymProfileID == nil || *group.GymProfileID != profile.ID {
+			return nil, errors.New("no tienes permiso para editar este grupo")
+		}
+	} else if ownerRole == middleware.RoleCoach {
+		profiles, _ := s.userRepo.GetTrainerProfilesByUserID(ownerID)
+		owned := false
+		for _, p := range profiles {
+			if group.TrainerProfileID != nil && *group.TrainerProfileID == p.ID {
+				owned = true
+				break
+			}
+		}
+		if !owned {
+			return nil, errors.New("no tienes permiso para editar este grupo")
+		}
+	}
+
+	if req.Name != nil {
+		group.Name = *req.Name
+	}
+
+	group, err = s.userRepo.UpdateGroup(group)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.UserIDs != nil {
+		s.userRepo.RemoveGroupMembers(groupID)
+		for _, userID := range req.UserIDs {
+			if err := s.checkPermission(ownerID, ownerRole, userID); err == nil {
+				s.userRepo.AddGroupMember(&models.UserGroupMember{
+					UserGroupID: group.ID,
+					UserID:      userID,
+				})
+			}
+		}
+	}
+
+	return s.getGroupResponse(group.ID)
+}
+
+func (s *authService) DeleteGroup(ownerID uint, ownerRole uint, groupID uint) error {
+	group, err := s.userRepo.GetGroupByID(groupID)
+	if err != nil {
+		return err
+	}
+
+	if ownerRole == middleware.RoleGym {
+		profile, _ := s.userRepo.GetGymProfileByUserID(ownerID)
+		if group.GymProfileID == nil || *group.GymProfileID != profile.ID {
+			return errors.New("no tienes permiso para eliminar este grupo")
+		}
+	} else if ownerRole == middleware.RoleCoach {
+		profiles, _ := s.userRepo.GetTrainerProfilesByUserID(ownerID)
+		owned := false
+		for _, p := range profiles {
+			if group.TrainerProfileID != nil && *group.TrainerProfileID == p.ID {
+				owned = true
+				break
+			}
+		}
+		if !owned {
+			return errors.New("no tienes permiso para eliminar este grupo")
+		}
+	}
+
+	s.userRepo.RemoveGroupMembers(groupID)
+	return s.userRepo.DeleteGroup(groupID)
+}
+
+func (s *authService) GetGroups(ownerID uint, ownerRole uint) ([]structs_response.GroupResponse, error) {
+	var groups []models.UserGroup
+	var err error
+
+	if ownerRole == middleware.RoleGym {
+		profile, err := s.userRepo.GetGymProfileByUserID(ownerID)
+		if err != nil {
+			return nil, err
+		}
+		groups, err = s.userRepo.GetGroupsByGymProfileID(profile.ID)
+	} else if ownerRole == middleware.RoleCoach {
+		profiles, _ := s.userRepo.GetTrainerProfilesByUserID(ownerID)
+		for _, p := range profiles {
+			g, _ := s.userRepo.GetGroupsByTrainerProfileID(p.ID)
+			groups = append(groups, g...)
+		}
+	} else {
+		return nil, errors.New("acceso denegado")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	responses := []structs_response.GroupResponse{}
+	for _, g := range groups {
+		members := []structs_response.ClientResponse{}
+		for _, m := range g.Members {
+			members = append(members, structs_response.ClientResponse{
+				ID:    m.UserID,
+				Email: m.User.Email,
+				Name:  m.User.FullName,
+				Phone: m.User.Phone,
+			})
+		}
+		responses = append(responses, structs_response.GroupResponse{
+			ID:      g.ID,
+			Name:    g.Name,
+			Members: members,
+		})
+	}
+
+	return responses, nil
+}
+
+func (s *authService) getGroupResponse(groupID uint) (*structs_response.GroupResponse, error) {
+	group, err := s.userRepo.GetGroupByID(groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	members := []structs_response.ClientResponse{}
+	for _, m := range group.Members {
+		members = append(members, structs_response.ClientResponse{
+			ID:    m.UserID,
+			Email: m.User.Email,
+			Name:  m.User.FullName,
+			Phone: m.User.Phone,
+		})
+	}
+
+	return &structs_response.GroupResponse{
+		ID:      group.ID,
+		Name:    group.Name,
+		Members: members,
+	}, nil
+}
+
+func (s *authService) checkPermission(requesterID uint, requesterRole uint, targetUserID uint) error {
+	if requesterID == targetUserID || requesterRole == middleware.RoleAdmin {
+		return nil
+	}
+
+	targetUser, err := s.userRepo.GetUserByID(targetUserID)
+	if err != nil {
+		return err
+	}
+
+	switch requesterRole {
+	case middleware.RoleCoach:
+		// Verificar si el target es cliente de este coach
+		profiles, _ := s.userRepo.GetTrainerProfilesByUserID(requesterID)
+		for _, p := range profiles {
+			_, err := s.userRepo.GetTrainerClientByProfileAndClient(p.ID, targetUserID)
+			if err == nil {
+				return nil
+			}
+		}
+	case middleware.RoleGym:
+		// Verificar si el target es coach o cliente de este gym
+		if targetUser.RoleID == middleware.RoleCoach {
+			_, err := s.userRepo.GetTrainerProfileByUserIDAndGymID(targetUserID, &requesterID)
+			if err == nil {
+				return nil
+			}
+		} else if targetUser.RoleID == middleware.RoleCliente {
+			_, err := s.userRepo.GetGymClientByGymAndClient(requesterID, targetUserID)
+			if err == nil {
+				return nil
+			}
+			// También si es cliente de uno de sus coaches
+			coaches, _ := s.userRepo.GetGymTrainersByGymUserID(requesterID)
+			for _, cp := range coaches {
+				_, err := s.userRepo.GetTrainerClientByProfileAndClient(cp.ID, targetUserID)
+				if err == nil {
+					return nil
+				}
+			}
+		}
+	}
+
+	return errors.New("no tienes permiso para realizar esta acción sobre este usuario")
 }

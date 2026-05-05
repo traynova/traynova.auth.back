@@ -62,7 +62,17 @@ func (a *AuthPrivateController) GetUsers() gin.HandlerFunc {
 			roleID = uint(parsedRoleID)
 		}
 
-		response, err := a.authService.GetAllUsers(page, pageSize, name, dni, email, roleID)
+		groupIDStr := c.Query("group_id")
+		var groupID *uint
+		if groupIDStr != "" {
+			parsedGroupID, err := strconv.ParseUint(groupIDStr, 10, 32)
+			if err == nil {
+				gID := uint(parsedGroupID)
+				groupID = &gID
+			}
+		}
+
+		response, err := a.authService.GetAllUsers(page, pageSize, name, dni, email, roleID, groupID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -134,7 +144,12 @@ func (a *AuthPrivateController) UpdateUser() gin.HandlerFunc {
 			return
 		}
 
-		response, err := a.authService.UpdateUser(uint(userID), req)
+		userIDInterface, _ := c.Get("user_id")
+		requesterID := userIDInterface.(uint)
+		roleIDInterface, _ := c.Get("role_id")
+		requesterRole := roleIDInterface.(uint)
+
+		response, err := a.authService.UpdateUser(requesterID, requesterRole, uint(userID), req)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -166,7 +181,12 @@ func (a *AuthPrivateController) DeleteUser() gin.HandlerFunc {
 			return
 		}
 
-		if err := a.authService.DeleteUser(uint(userID)); err != nil {
+		userIDInterface, _ := c.Get("user_id")
+		requesterID := userIDInterface.(uint)
+		roleIDInterface, _ := c.Get("role_id")
+		requesterRole := roleIDInterface.(uint)
+
+		if err := a.authService.DeleteUser(requesterID, requesterRole, uint(userID)); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -276,6 +296,189 @@ func (a *AuthPrivateController) UpdateBranding() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Branding actualizado correctamente"})
+	}
+}
+
+// @Summary Cambiar estado de activación del usuario
+// @Description Permite habilitar o deshabilitar un usuario
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param id path int true "ID del usuario"
+// @Param active query bool true "Estado de activación"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
+// @Router /private/auth/users/{id}/status [patch]
+func (a *AuthPrivateController) ToggleUserStatus() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idParam := c.Param("id")
+		userID, err := strconv.ParseUint(idParam, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "ID de usuario inválido"})
+			return
+		}
+
+		activeStr := c.Query("active")
+		active, err := strconv.ParseBool(activeStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Estado 'active' inválido"})
+			return
+		}
+
+		userIDInterface, _ := c.Get("user_id")
+		requesterID := userIDInterface.(uint)
+		roleIDInterface, _ := c.Get("role_id")
+		requesterRole := roleIDInterface.(uint)
+
+		err = a.authService.ToggleUserStatus(requesterID, requesterRole, uint(userID), active)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Estado de usuario actualizado"})
+	}
+}
+
+// @Summary Crear un nuevo grupo de clientes
+// @Description Permite a un entrenador crear un grupo para organizar sus clientes
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body structs_request.CreateGroupRequest true "Datos del grupo"
+// @Success 201 {object} structs_response.GroupResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
+// @Router /private/auth/groups [post]
+func (a *AuthPrivateController) CreateGroup() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDInterface, _ := c.Get("user_id")
+		userID := userIDInterface.(uint)
+		roleIDInterface, _ := c.Get("role_id")
+		roleID := roleIDInterface.(uint)
+
+		var req structs_request.CreateGroupRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		response, err := a.authService.CreateGroup(userID, roleID, req)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, response)
+	}
+}
+
+// @Summary Obtener grupos del entrenador
+// @Description Devuelve todos los grupos creados por el entrenador autenticado
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {array} structs_response.GroupResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
+// @Router /private/auth/groups [get]
+func (a *AuthPrivateController) GetGroups() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDInterface, _ := c.Get("user_id")
+		userID := userIDInterface.(uint)
+		roleIDInterface, _ := c.Get("role_id")
+		roleID := roleIDInterface.(uint)
+
+		response, err := a.authService.GetGroups(userID, roleID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+}
+
+// @Summary Actualizar un grupo
+// @Description Modifica el nombre o los miembros de un grupo
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param id path int true "ID del grupo"
+// @Param request body structs_request.UpdateGroupRequest true "Datos a actualizar"
+// @Success 200 {object} structs_response.GroupResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
+// @Router /private/auth/groups/{id} [put]
+func (a *AuthPrivateController) UpdateGroup() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDInterface, _ := c.Get("user_id")
+		userID := userIDInterface.(uint)
+		roleIDInterface, _ := c.Get("role_id")
+		roleID := roleIDInterface.(uint)
+
+		idParam := c.Param("id")
+		groupID, _ := strconv.ParseUint(idParam, 10, 32)
+
+		var req structs_request.UpdateGroupRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		response, err := a.authService.UpdateGroup(userID, roleID, uint(groupID), req)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+}
+
+// @Summary Eliminar un grupo
+// @Description Borra un grupo permanentemente
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param id path int true "ID del grupo"
+// @Success 204
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+//
+//	@Security		BearerAuth
+//
+// @Router /private/auth/groups/{id} [delete]
+func (a *AuthPrivateController) DeleteGroup() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDInterface, _ := c.Get("user_id")
+		userID := userIDInterface.(uint)
+		roleIDInterface, _ := c.Get("role_id")
+		roleID := roleIDInterface.(uint)
+
+		idParam := c.Param("id")
+		groupID, _ := strconv.ParseUint(idParam, 10, 32)
+
+		err := a.authService.DeleteGroup(userID, roleID, uint(groupID))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.Status(http.StatusNoContent)
 	}
 }
 

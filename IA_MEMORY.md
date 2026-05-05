@@ -237,13 +237,24 @@
 
 ## 13. ✅ Cambios más recientes (2026-04-18)
 
-* **Integración con Microservicio Externo de Storage y Branding:**
-  - Se añadió el campo `CollectionID` (string) a los modelos `User`, `GymProfile` y `TrainerProfile`.
-  - **Separación de Flujos:** El registro de usuario ahora solo requiere información principal. Los archivos y colores se manejan en un endpoint dedicado.
-  - **Nuevo Endpoint de Branding:** `POST /private/auth/branding` (multipart/form-data)
-    - Permite subir `avatar` (para el usuario) y `logo` (para el gimnasio).
-    - Permite actualizar `primary_color` y `secondary_color`.
-    - El servicio `auth-service` actúa como puente, subiendo los archivos al microservicio `gestrym-storage` y guardando los `collection_id` retornados.
-  - **Limpieza de Registro:** Se eliminaron los campos de branding de `RegisterRequest` para simplificar el alta de usuarios.
-  - **Persistencia:** Los colores y logos se guardan en `GymProfile` o `TrainerProfile` según el rol, y el avatar principal se guarda en el modelo `User`.
+* **Gestión de Grupos/Sedes y Acciones de Gestión Segura (2026-05-04):**
+  - **Nuevas Entidades:** `UserGroup` y `UserGroupMember` para permitir tanto a entrenadores (Grupos) como a gimnasios (Sedes) organizar a sus usuarios.
+  - **Flexibilidad de Miembros:** Los grupos ahora pueden contener tanto clientes como entrenadores, permitiendo que un Gimnasio agrupe a su personal por sedes.
+  - **Gestión Segura:** Se implementaron validaciones de permisos en el `authService` para asegurar que:
+    - Los entrenadores solo puedan gestionar a sus propios clientes.
+    - Los gimnasios puedan gestionar a sus entrenadores y a los clientes vinculados a su gimnasio (directamente o a través de sus entrenadores).
+    - Los administradores mantengan control total.
+  - **Nuevas Acciones Implementadas:**
+    - `ToggleUserStatus`: Permite habilitar o deshabilitar usuarios (activación/desactivación manual).
+    - CRUD de Grupos: `CreateGroup`, `UpdateGroup`, `DeleteGroup`, `GetGroups`.
+    - `GetAllUsers` ahora permite filtrar por `group_id`, facilitando la visualización por sedes para gimnasios.
+    - `UpdateUser` y `DeleteUser` ahora incluyen validación de autoría/permiso.
+  - **Nuevos Endpoints Privados:**
+    - `PATCH /private/auth/users/:id/status` (Habilitar/Deshabilitar)
+    - `POST /private/auth/groups` (Crear grupo/sede)
+    - `GET /private/auth/groups` (Listar grupos/sedes del dueño)
+    - `PUT /private/auth/groups/:id` (Editar grupo y miembros)
+    - `DELETE /private/auth/groups/:id` (Eliminar grupo)
+  - **Guía de Integración:** Se actualizó `GUIA_FRONT.md` con los nuevos endpoints y filtros.
+  - **Desacoplamiento:** Estas acciones se mantienen en el servicio de Auth para centralizar la gestión de identidades y relaciones de negocio, mientras que el progreso y entrenamiento residen en sus respectivos microservicios.
 

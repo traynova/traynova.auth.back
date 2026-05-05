@@ -67,13 +67,19 @@ func (a *authRepository) ValidateCoachGymAssociation(coachId uint) (*models.Trai
 	return &association, nil
 }
 
-func (a *authRepository) GetAllUsers(page int, pageSize int, name *string, dni *string, email *string) ([]models.User, int64, error) {
+func (a *authRepository) GetAllUsers(page int, pageSize int, name *string, dni *string, email *string, groupID *uint) ([]models.User, int64, error) {
 	offset := (page - 1) * pageSize
 
 	query := a.db.
 		Preload("Role").
 		Where("is_active = ?", true).
 		Order("id asc")
+
+	// Filtrar por grupo
+	if groupID != nil && *groupID != 0 {
+		query = query.Joins("JOIN user_group_members ON user_group_members.user_id = users.id").
+			Where("user_group_members.user_group_id = ?", *groupID)
+	}
 
 	// Filtrar por nombre
 	if name != nil && *name != "" {
@@ -214,4 +220,63 @@ func (a *authRepository) GetGymClientByGymAndClient(gymUserID uint, clientID uin
 		return nil, err
 	}
 	return &gymClient, nil
+}
+
+func (a *authRepository) CreateGroup(group *models.UserGroup) (*models.UserGroup, error) {
+	if err := a.db.Create(group).Error; err != nil {
+		return nil, err
+	}
+	return group, nil
+}
+
+func (a *authRepository) UpdateGroup(group *models.UserGroup) (*models.UserGroup, error) {
+	if err := a.db.Save(group).Error; err != nil {
+		return nil, err
+	}
+	return group, nil
+}
+
+func (a *authRepository) DeleteGroup(groupID uint) error {
+	return a.db.Delete(&models.UserGroup{}, groupID).Error
+}
+
+func (a *authRepository) GetGroupByID(groupID uint) (*models.UserGroup, error) {
+	var group models.UserGroup
+	if err := a.db.Preload("Members.User").Where("id = ?", groupID).First(&group).Error; err != nil {
+		return nil, err
+	}
+	return &group, nil
+}
+
+func (a *authRepository) GetGroupsByTrainerProfileID(profileID uint) ([]models.UserGroup, error) {
+	var groups []models.UserGroup
+	if err := a.db.Preload("Members.User").Where("trainer_profile_id = ?", profileID).Find(&groups).Error; err != nil {
+		return nil, err
+	}
+	return groups, nil
+}
+
+func (a *authRepository) GetGroupsByGymProfileID(profileID uint) ([]models.UserGroup, error) {
+	var groups []models.UserGroup
+	if err := a.db.Preload("Members.User").Where("gym_profile_id = ?", profileID).Find(&groups).Error; err != nil {
+		return nil, err
+	}
+	return groups, nil
+}
+
+func (a *authRepository) AddGroupMember(member *models.UserGroupMember) error {
+	return a.db.Create(member).Error
+}
+
+func (a *authRepository) RemoveGroupMembers(groupID uint) error {
+	return a.db.Where("user_group_id = ?", groupID).Delete(&models.UserGroupMember{}).Error
+}
+
+func (a *authRepository) GetUsersByGroup(groupID uint) ([]models.User, error) {
+	var users []models.User
+	err := a.db.Model(&models.User{}).
+		Joins("JOIN user_group_members ON user_group_members.user_id = users.id").
+		Where("user_group_members.user_group_id = ?", groupID).
+		Find(&users).Error
+	return users, err
 }

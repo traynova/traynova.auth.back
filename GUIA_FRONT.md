@@ -349,7 +349,7 @@ GET /public/auth/validate?token=<access_token>
 **Query params opcionales:**
 - `page` (default: 1)
 - `page_size` (default: 10)
-- `name`, `email`, `dni`, `role_id`
+- `name`, `email`, `dni`, `role_id`, `group_id`
 
 **✅ Respuesta:**
 ```json
@@ -410,6 +410,61 @@ Todos los campos son **opcionales** (solo se actualiza lo que se envíe):
 
 No requiere body. Marca el usuario con `is_active: false`.
 
+**✅ Respuesta:** `204 No Content`
+
+---
+
+### Cambiar estado de usuario — `PATCH /private/auth/users/:id/status`
+
+Permite habilitar o deshabilitar un usuario (útil para bajas temporales).
+
+**Query Params:**
+- `active`: `true` para habilitar, `false` para deshabilitar.
+
+**✅ Respuesta:**
+```json
+{ "message": "Estado de usuario actualizado" }
+```
+
+---
+
+### Gestión de Grupos / Sedes
+
+Estos endpoints permiten organizar usuarios (clientes y entrenadores). Un Gimnasio puede usar grupos como **Sedes**, y un Entrenador como **Grupos de entrenamiento**.
+
+#### Crear Grupo — `POST /private/auth/groups`
+```json
+{
+  "name": "Sede Norte",
+  "user_ids": [10, 11, 12]
+}
+```
+
+#### Listar Grupos — `GET /private/auth/groups`
+**✅ Respuesta:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Sede Norte",
+    "members": [
+      { "id": 10, "name": "Juan", "email": "..." },
+      { "id": 11, "name": "Pedro", "email": "..." }
+    ]
+  }
+]
+```
+
+#### Actualizar Grupo — `PUT /private/auth/groups/:id`
+```json
+{
+  "name": "Sede Norte - Actualizada",
+  "user_ids": [10, 15] 
+}
+```
+> ⚠️ `user_ids` sobrescribe la lista actual de miembros.
+
+#### Eliminar Grupo — `DELETE /private/auth/groups/:id`
 **✅ Respuesta:** `204 No Content`
 
 ---
