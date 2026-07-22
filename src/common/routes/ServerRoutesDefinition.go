@@ -191,6 +191,8 @@ func (r *routesDefinition) addPublicRoutes(
 	r.publicGroup.POST("/auth/password/recovery", authPublicController.RequestPasswordRecovery())
 	r.publicGroup.POST("/auth/password/reset", authPublicController.ResetPassword())
 	r.publicGroup.GET("/auth/validate", authPublicController.ValidateToken())
+	r.publicGroup.POST("/auth/social/:provider", authPublicController.SocialLogin())
+	r.publicGroup.POST("/auth/refresh", authPublicController.RefreshToken())
 }
 
 func (r *routesDefinition) addPrivateRoutes(

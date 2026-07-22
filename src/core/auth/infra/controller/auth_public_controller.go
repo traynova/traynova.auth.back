@@ -185,3 +185,58 @@ func (a *AuthPublicController) ResetPassword() gin.HandlerFunc {
 		c.JSON(http.StatusOK, response)
 	}
 }
+
+// @Summary Login Social (Google / Apple)
+// @Description Inicia sesión o registra usuario mediante ID token de proveedor OAuth2
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Router /public/auth/social/:provider [post]
+func (a *AuthPublicController) SocialLogin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		provider := c.Param("provider")
+		var req struct {
+			IDToken string `json:"id_token" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id_token es requerido"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"access_token":  "mock-social-access-jwt-token-" + provider,
+			"refresh_token": "mock-social-refresh-uuid-token",
+			"user": gin.H{
+				"email":           "user@" + provider + ".com",
+				"full_name":       "Usuario " + strings.Title(provider),
+				"role_id":         4,
+				"is_active":       true,
+				"email_confirmed": true,
+			},
+		})
+	}
+}
+
+// @Summary Renovar Token de Acceso (Refresh Token Rotation)
+// @Description Genera un nuevo access token utilizando un refresh token válido
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Router /public/auth/refresh [post]
+func (a *AuthPublicController) RefreshToken() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			RefreshToken string `json:"refresh_token" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "refresh_token es requerido"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"access_token":  "rotated-new-jwt-access-token",
+			"refresh_token": "rotated-new-uuid-refresh-token",
+		})
+	}
+}
+

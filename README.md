@@ -1,192 +1,237 @@
-# 🔐 Traynova / Gestrym - Microservicio de Autenticación (Auth Back)
+# 🛡️ Traynova Auth Microservice (gestrym-auth)
 
-![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-![Framework](https://img.shields.io/badge/Gin--Gonic-v1.12.0-008080?style=for-the-badge&logo=gin&logoColor=white)
-![ORM](https://img.shields.io/badge/GORM-v1.25.10-blue?style=for-the-badge)
-![Database](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-orange?style=for-the-badge)
-![Swagger](https://img.shields.io/badge/Swagger-OpenAPI%203.0-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev/)
+[![Gin Framework](https://img.shields.io/badge/Framework-Gin_Gonic-008080?style=flat-square&logo=gin&logoColor=white)](https://gin-gonic.com/)
+[![GORM](https://img.shields.io/badge/ORM-GORM_PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://gorm.io/)
+[![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-orange?style=flat-square)](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software))
+[![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)]()
 
-**Traynova Auth Back** (`gestrym-auth`) es el microservicio centralizado de **Autenticación, Autorización y Gestión de Identidades (IAM)** para la plataforma de entrenamiento deportivo y gestión nutricional Traynova / Gestrym.
+Microservicio central de **Autenticación, Autorización y Gestión de Identidades** para la plataforma deportiva y nutricional **Traynova / Gestrym**. 
 
-Proporciona un mecanismo seguro y escalable basado en **Arquitectura Hexagonal (Ports & Adapters)** para gestionar usuarios, roles, permisos granularizados (RBAC), tokens de activación y recuperación de contraseña, relaciones de negocio (Gimnasio, Entrenador, Cliente) y agrupaciones/sedes.
-
----
-
-## 🚀 Características Principales
-
-- 👤 **Registro Multiorigen:**
-  - Registro público (*Self-signup*).
-  - Registro de clientes o entrenadores por parte de un Gimnasio o Entrenador (*Gym / Trainer source*).
-- 📧 **Confirmación de Cuenta por Email:**
-  - Registro con cuenta inactiva (`is_active: false`, `email_confirmed: false`).
-  - Generación de token JWT de activación invalidadle tras su uso.
-  - Integración mediante servicio de notificaciones pro por plantillas HTML.
-- 🔑 **Autenticación y Tokens JWT:**
-  - Emisión y validación de tokens JWT HMAC firmados con claims contextuales (`user_id`, `role_id`, `access_level_id`).
-  - Endpoint de validación pública de tokens.
-- 🔐 **Control de Acceso Basado en Roles (RBAC):**
-  - Roles soportados: **Cliente (1)**, **Coach/Entrenador (2)**, **Gimnasio (3)**, **Administrador (4)**.
-  - Middlewares de protección de rutas por JWT y verificación estricta de roles.
-- 🔄 **Flujo de Recuperación de Contraseña:**
-  - Solicitud de recuperación vía correo electrónico.
-  - Restablecimiento mediante token con expiración programada.
-- 🏢 **Gestión de Grupos y Sedes (`UserGroup` / `UserGroupMember`):**
-  - Creación y administración de grupos o sedes para organizar clientes y personal deportivo.
-  - Filtrado de usuarios por sede/grupo.
-- 🛡️ **Seguridad y Auditoría:**
-  - Hashing seguro de contraseñas con `bcrypt`.
-  - Habilitación/deshabilitación manual de usuarios (`ToggleUserStatus`).
-  - *Soft delete* de usuarios para preservar integridad histórica.
+El sistema gestiona usuarios, roles jerárquicos, permisos dinámicos, emisión de tokens JWT, flujos de confirmación por email, restablecimiento de contraseñas y organización por grupos/sedes de entrenamiento.
 
 ---
 
-## 🏗️ Arquitectura del Proyecto
+## 📋 Tabla de Contenidos
 
-El microservicio está implementado siguiendo los principios de la **Arquitectura Hexagonal (Ports & Adapters)**, garantizando el desacoplamiento entre las reglas de dominio y los detalles técnicos como la base de datos o el framework HTTP.
+- [📌 Visión General y Objetivos](#-visión-general-y-objetivos)
+- [🏗️ Arquitectura del Sistema](#️-arquitectura-del-sistema)
+- [✨ Características Principales](#-características-principales)
+- [🛠️ Tecnologías y Librerías](#️-tecnologías-y-librerías)
+- [📂 Estructura del Proyecto](#-estructura-del-proyecto)
+- [🔐 Funcionalidades y Flujos de Negocio](#-funcionalidades-y-flujos-de-negocio)
+- [🌐 Enrutamiento y Endpoints API](#-enrutamiento-y-endpoints-api)
+- [⚙️ Variables de Entorno](#️-variables-de-entorno)
+- [🚀 Despliegue y Ejecución Local](#-despliegue-y-ejecución-local)
+- [📄 Documentación Swagger](#-documentación-swagger)
 
-```text
-src/
-├── app.go                       # Punto de entrada principal y bootstrap del servidor Gin
-├── common/                      # Capa transversal y modelos compartidos
-│   ├── config/                  # Carga de variables de entorno (Viper)
-│   ├── middleware/              # JWT, CORS y middleware de validación de roles
-│   ├── models/                  # Entidades GORM compartidas
-│   ├── routes/                  # Definición global de grupos de rutas (Public, Private, Protected)
-│   ├── shared/                  # Cliente HTTP e integración externa (Notificaciones)
-│   └── utils/                   # Utilidades, constantes y formateadores
-└── core/                        # Bounded Contexts / Módulos de Dominio
-    ├── access_levels/           # Gestión de Niveles de Acceso
-    ├── actions/                 # Gestión de Acciones de Permisos
-    ├── auth/                    # Módulo principal de Usuarios, Registro y Perfiles
-    │   ├── app/                 # Servicios de aplicación y lógica de negocio
-    │   ├── domain/              # Puertos (Interfaces) y DTOs
-    │   └── infra/               # Adaptadores HTTP (Controllers) y Repositorios GORM
-    ├── jwt/                     # Generación y verificación de Tokens JWT
-    ├── login/                   # Módulo de Autenticación y Login
-    ├── permissions/             # Definición y asignación de Permisos
-    ├── roles/                   # Definición de Roles del Sistema
-    └── token_types/             # Catálogo de tipos de token (Activación, Reset, etc.)
+---
+
+## 📌 Visión General y Objetivos
+
+El microservicio `traynova.auth.back` actúa como la **fuente de verdad** para la identidad de los usuarios en la plataforma. Está diseñado bajo el patrón de **Arquitectura Hexagonal (Ports & Adapters)** para garantizar un backend completamente desacoplado de las bases de datos o los frameworks HTTP.
+
+### Objetivos clave de negocio:
+- **Gestión centralizada de identidades**: Soporta clientes, entrenadores (coaches), gimnasios (gyms) y administradores.
+- **Relaciones de negocio automatizadas**: Asocia de forma transparente clientes a entrenadores (`TrainerClient`), clientes a gimnasios (`GymClient`) y entrenadores a gimnasios (`TrainerProfile`).
+- **Seguridad y Control de Acceso**: Control de acceso basado en roles (RBAC) con tokens JWT y expiración configurable.
+- **Notificaciones por Plantillas Estructuradas**: Integración mediante webhooks/HTTP con el servicio pro de notificaciones.
+
+---
+
+## 🏗️ Arquitectura del Sistema
+
+El proyecto sigue estrictamente los principios de **Arquitectura Hexagonal**:
+
 ```
+[ HTTP Requests (Gin Controllers) ]
+               │
+               ▼
+   [ Core Application Services ]
+               │
+               ▼
+    [ Domain Interfaces / Ports ]
+               │
+               ▼
+[ Infrastructure Repositories (GORM / Postgres) ]
+```
+
+### Capas del Proyecto:
+- **`src/common`**: Configuración global de base de datos, middlewares (JWT y RBAC), modelos compartidos de base de datos, utilidades de encripción/logging y enrutador Gin.
+- **`src/core/<modulo>`**:
+  - **`app`**: Lógica de aplicación, casos de uso y orquestación de servicios de dominio.
+  - **`domain`**: Contratos de puertos (`ports`), DTOs de Request/Response e interfaces.
+  - **`infra`**: Adaptadores concretos de infraestructura (controladores HTTP Gin y repositorios GORM).
+
+---
+
+## ✨ Características Principales
+
+1. **Autenticación & Login**:
+   - Login por email y contraseña hash con Bcrypt.
+   - Validación de cuenta activa (`is_active: true`) y correo confirmado (`email_confirmed: true`).
+   - Emisión de tokens de acceso JWT HMAC firmados con clave secreta (`JWT_KEY`).
+
+2. **Registro Multiorigen (Self / Gym / Trainer)**:
+   - Registro público para automuestreo (`registration_source: "self"`).
+   - Registro delegado por Gimnasio o Entrenador (`gym` / `trainer`).
+   - Creación automática de perfiles detallados (`GymProfile`, `TrainerProfile`) con colores institucionales, códigos de referido y avatares.
+
+3. **Confirmación de Correo Electrónico**:
+   - Creación de cuenta en estado inactivo (`is_active: false`, `email_confirmed: false`).
+   - Emisión de `UserToken` de activación JWT.
+   - Notificación vía plantilla `account_confirmation` al servicio externo de emails.
+   - Confirmación por URL `GET /public/auth/confirm?token=...`.
+
+4. **Restablecimiento y Recuperación de Contraseña**:
+   - Envío de token de recuperación vía correo con plantilla `recovery_password`.
+   - Restablecimiento seguro consumiendo token válido `POST /public/auth/password/reset`.
+
+5. **Organización en Grupos y Sedes**:
+   - Creación de grupos/sedes (`UserGroup` / `UserGroupMember`).
+   - Permite a Gimnasios organizar entrenadores y clientes por sedes físicas.
+   - Permite a Entrenadores agrupar a sus clientes en programas o equipos.
+
+6. **Control de Estado de Usuarios (Toggle & Soft Delete)**:
+   - Endpoint `PATCH /private/auth/users/:id/status` para deshabilitar/habilitar usuarios manualmente.
+   - Eliminación suave (*soft delete*) preservando la integridad referencial.
 
 ---
 
 ## 🛠️ Tecnologías y Librerías
 
-| Tecnología | Categoría | Propósito |
-| :--- | :--- | :--- |
-| **Go 1.25** | Lenguaje | Lenguaje de programación base |
-| **Gin Gonic v1.12** | Web Framework | Enrutamiento HTTP rápido y ligero |
-| **GORM v1.25** | ORM | Mapeo objeto-relacional para PostgreSQL |
-| **PostgreSQL** | Base de Datos | Persistencia relacional de datos |
-| **Viper v1.21** | Configuración | Gestión de variables de entorno y archivos `.env` |
-| **Golang JWT v4** | Autenticación | Emisión y verificación de JSON Web Tokens |
-| **Bcrypt** | Seguridad | Encriptación y hashing de contraseñas |
-| **Gin Swagger** | Documentación | Generación automática de especificación OpenAPI / Swagger |
+- **Lenguaje**: [Go 1.25+](https://go.dev/)
+- **Framework Web HTTP**: [Gin Gonic v1.12](https://github.com/gin-gonic/gin)
+- **ORM / Base de Datos**: [GORM v1.25](https://gorm.io/) con driver PostgreSQL (`pgx/v5`)
+- **Configuración**: [Viper v1.21](https://github.com/spf13/viper) (soporta YAML y variables de entorno)
+- **Seguridad & Crypt**: [Golang JWT v4](https://github.com/golang-jwt/jwt) y [Bcrypt](https://golang.org/x/crypto)
+- **Documentación API**: [Gin-Swagger / Swaggo v1.16](https://github.com/swaggo/gin-swagger)
 
 ---
 
-## 🌐 Resumen de Endpoints HTTP
+## 📂 Estructura del Proyecto
 
-### 🔓 Endpoints Públicos (`/public`)
-- `POST /public/auth/register`: Registro de nuevos usuarios (*Self-signup*).
-- `GET /public/auth/confirm`: Confirmación de email mediante token de activación.
-- `GET /public/auth/validate`: Validación de integridad de tokens JWT.
-- `POST /public/auth/password/recovery`: Solicitud de enlace de recuperación de contraseña.
-- `POST /public/auth/password/reset`: Restablecimiento de contraseña con token.
-- `POST /public/login`: Inicio de sesión y generación de tokens de acceso.
-
-### 🔒 Endpoints Privados / Autenticados (`/private`)
-- `POST /private/auth/register`: Registro interno de clientes/entrenadores por Gym o Coach.
-- `GET /private/auth/users`: Listado de usuarios con filtros (rol, búsqueda, `group_id`).
-- `GET /private/auth/users/:id`: Obtener detalles de un usuario específico.
-- `PUT /private/auth/users/:id`: Actualizar datos de usuario.
-- `DELETE /private/auth/users/:id`: Desactivación (*soft delete*) de usuario.
-- `PATCH /private/auth/users/:id/status`: Habilitar o deshabilitar cuenta de usuario.
-- `GET /private/auth/clients`: Listado de clientes asociados al entrenador o gimnasio autenticado.
-- `POST /private/auth/groups`: Crear grupo o sede.
-- `GET /private/auth/groups`: Listar grupos o sedes pertenecientes al usuario autenticado.
-- `PUT /private/auth/groups/:id`: Actualizar grupo y asignación de miembros.
-- `DELETE /private/auth/groups/:id`: Eliminar un grupo/sede.
-
-### 🛡️ Endpoints Protegidos / Catálogos Admin (`/protected`)
-- Rutas administrativas protegidas por rol Admin (`RequireRoles(4)`) para gestionar `roles`, `permissions`, `actions`, `access_levels` y `token_types`.
-
----
-
-## ⚙️ Configuración y Variables de Entorno
-
-Crea un archivo `.env` en la raíz del proyecto basado en `.env.example`:
-
-```env
-# Servidor HTTP
-PORT=8080
-ENV=local
-
-# Base de Datos PostgreSQL
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=secret
-DB_NAME=traynova_auth
-DB_SSLMODE=disable
-
-# Autenticación JWT
-JWT_KEY=tu_clave_secreta_jwt_super_segura
-JWT_EXPIRATION_HOURS=24
-
-# Microservicio de Notificaciones Externo
-NOTIFICATION_SERVICE_URL=http://localhost:8081
-X_API_KEY=tu_api_key_de_notificaciones
-DASHBOARD_URL=http://localhost:3000
+```
+traynova.auth.back/
+├── .env.example                # Plantilla de variables de entorno
+├── Dockerfile                  # Construcción de imagen de contenedor
+├── GUIA_FRONT.md               # Guía de consumo de API para desarrolladores Frontend
+├── IA_MEMORY.md                # Memoria de arquitectura y decisiones técnicas para IA
+├── CLASIFICACION_Y_DETALLE.md  # Desglose exhaustivo de componentes y mapa del repositorio
+├── main.go                     # Punto de entrada de la aplicación
+├── go.mod                      # Módulo de Go y dependencias
+├── deployment/
+│   └── env_local.yaml          # Configuración de entorno local
+├── docs/                       # Especificaciones OpenAPI / Swagger generadas
+│   ├── docs.go
+│   ├── swagger.json
+│   └── swagger.yaml
+└── src/
+    ├── app.go                  # Inicializador del servidor y migración DB
+    ├── common/
+    │   ├── config/             # Conexión DB y auto-migraciones GORM
+    │   ├── middleware/         # Auth JWT Middleware & Role Authorization
+    │   ├── models/             # Entidades GORM relacionales
+    │   ├── routes/             # Definición centralizada de rutas HTTP
+    │   └── utils/              # Hashers, logger y constantes de roles
+    └── core/                   # Módulos de dominio (Hexagonal Architecture)
+        ├── access_levels/      # Niveles de acceso
+        ├── actions/            # Acciones del sistema
+        ├── auth/               # Servicio principal (Registro, Usuarios, Grupos)
+        ├── jwt/                # Generador de tokens JWT
+        ├── login/              # Controladores y servicio de inicio de sesión
+        ├── permissions/        # Gestión de permisos
+        ├── roles/              # Gestión de roles
+        └── token_types/        # Gestión de tipos de token
 ```
 
 ---
 
-## ⚡ Ejecución Local
+## 🌐 Enrutamiento y Endpoints API
 
-### 1. Clonar el repositorio e instalar dependencias
+### 🔓 Endpoints Públicos (`/gestrym-auth/public/*`)
+- `POST /public/login` - Inicio de sesión y emisión de tokens.
+- `POST /public/auth/register` - Autorregistro público de usuarios.
+- `GET  /public/auth/confirm` - Confirmación de cuenta mediante token enviado por correo.
+- `POST /public/auth/validate` - Validación de token JWT.
+- `POST /public/auth/password/recovery` - Solicitud de correo de recuperación de contraseña.
+- `POST /public/auth/password/reset` - Restablecimiento de contraseña con token.
+
+### 🔒 Endpoints Privados (`/gestrym-auth/private/*`)
+- `POST   /private/auth/register` - Registro de usuarios por parte de Entrenadores o Gimnasios.
+- `GET    /private/auth/users` - Listado de usuarios activos con filtros (soporta `group_id`).
+- `GET    /private/auth/users/:id` - Obtener detalle de usuario por ID.
+- `PUT    /private/auth/users/:id` - Actualizar información de usuario.
+- `DELETE /private/auth/users/:id` - Soft delete de usuario.
+- `PATCH  /private/auth/users/:id/status` - Activar/Desactivar estado de usuario.
+- `GET    /private/auth/clients` - Listar clientes/entrenadores vinculados según el rol del solicitante.
+- `POST   /private/auth/groups` - Crear grupo o sede.
+- `GET    /private/auth/groups` - Listar grupos o sedes creados por el usuario.
+- `PUT    /private/auth/groups/:id` - Editar grupo/sede y sus miembros.
+- `DELETE /private/auth/groups/:id` - Eliminar grupo o sede.
+
+### 🛡️ Endpoints Protegidos / Catálogos (`/gestrym-auth/protected/*`)
+- Catálogos administrativos protegidos por rol Admin (`RequireRoles(4)`): `/roles`, `/permissions`, `/actions`, `/access-levels`, `/token-types`.
+
+---
+
+## ⚙️ Variables de Entorno
+
+Configurables mediante archivo `.env` o variables de ambiente del contenedor:
+
+| Variable | Descripción | Valor por Defecto / Ejemplo |
+| :--- | :--- | :--- |
+| `GESTRYM_SERVER_ADDRESS` | Puerto y host donde corre la API | `:8080` |
+| `GIN_MODE` | Modo de ejecución de Gin (`debug` / `release`) | `debug` |
+| `GESTRYM_DB_HOST` | Host de la base de datos PostgreSQL | `localhost` |
+| `GESTRYM_DB_USER` | Usuario PostgreSQL | `postgres` |
+| `GESTRYM_DB_PASSWORD` | Contraseña PostgreSQL | `postgres` |
+| `GESTRYM_DB_NAME` | Nombre de la base de datos | `gestrym_auth_db` |
+| `GESTRYM_DB_PORT` | Puerto PostgreSQL | `5432` |
+| `JWT_KEY` | Clave secreta para firmar tokens JWT | `secret_key_change_me` |
+| `NOTIFICATION_SERVICE_URL` | Endpoint del servicio de notificaciones pro | `http://localhost:8443` |
+| `DASHBOARD_URL` | URL base de la aplicación web / dashboard | `http://localhost:3000` |
+| `X_API_KEY` | Llave API para autorizar el envío de notificaciones | `your_api_key` |
+
+---
+
+## 🚀 Despliegue y Ejecución Local
+
+### 1. Prerrequisitos
+- [Go 1.25+](https://go.dev/dl/) instalado.
+- Instancia activa de **PostgreSQL**.
+
+### 2. Clonar e Instalar Dependencias
 ```bash
 git clone https://github.com/tu-usuario/traynova.auth.back.git
 cd traynova.auth.back
 go mod download
 ```
 
-### 2. Ejecutar la aplicación
+### 3. Ejecución Local (Desarrollo)
+Crea o edita `deployment/env_local.yaml` con tus credenciales locales de PostgreSQL y ejecuta:
 ```bash
-go run main.go
-```
-El servidor iniciará por defecto en `http://localhost:8080`.
-
-### 3. Ejecutar con Docker
-```bash
-docker build -t gestrym-auth .
-docker run -p 8080:8080 --env-file .env gestrym-auth
+go run main.go --local=true
 ```
 
----
-
-## 📚 Documentación Swagger / OpenAPI
-
-La documentación interactiva de la API está integrada mediante Swagger UI:
-- **Swagger UI:** `http://localhost:8080/swagger/index.html`
-- **Especificación JSON:** [swagger.json](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/docs/swagger.json)
-
-Para actualizar la documentación tras modificar comentarios en el código:
+### 4. Ejecución en Producción / Docker
+Construir y correr la imagen Docker:
 ```bash
-swag init -g src/app.go
+docker build -t traynova-auth-back .
+docker run -p 8080:8080 --env-file .env traynova-auth-back
 ```
 
 ---
 
-## 📄 Guías Adicionales
+## 📄 Documentación Swagger
 
-- 📘 [CLASIFICACION_Y_DETALLE.md](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/CLASIFICACION_Y_DETALLE.md): Explicación exhaustiva componente por componente, entidades de dominio y flujos.
-- 📱 [GUIA_FRONT.md](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/GUIA_FRONT.md): Guía detallada de integración para aplicaciones cliente (Web / Mobile).
-- 🧠 [IA_MEMORY.md](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/IA_MEMORY.md): Memoria técnica y decisiones de arquitectura para asistentes IA.
+El microservicio expone su documentación Swagger generada dinámicamente. 
+
+Con el servidor corriendo, accede en el navegador a:
+👉 **`http://localhost:8080/swagger/index.html`** (o en la ruta configurada `/gestrym-auth/swagger/index.html`).
 
 ---
 
-## 📝 Licencia y Autores
-
-Desarrollado como parte del ecosistema de microservicios **Traynova / Gestrym**. Todos los derechos reservados.
+<p align="center">
+  Desarrollado con ❤️ para la plataforma <b>Traynova</b>.
+</p>

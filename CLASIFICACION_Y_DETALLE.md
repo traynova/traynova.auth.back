@@ -1,171 +1,170 @@
-# 📋 Clasificación y Documentación Detallada del Repositorio
+# 🔍 Clasificación y Detalle del Repositorio: `traynova.auth.back`
 
-> **Repositorio:** `traynova.auth.back` (`gestrym-auth`)  
-> **Propósito:** Microservicio backend de Autenticación, Autorización (RBAC) y Gestión de Identidades/Organizaciones.  
-> **Arquitectura:** Hexagonal / Ports and Adapters en Go.
+Este documento proporciona un desglose técnico, taxonómico y funcional completo de todos los archivos, componentes, módulos y modelos presentes en el repositorio **`traynova.auth.back`** (módulo Go `gestrym`).
 
 ---
 
-## 1. 🗂️ Clasificación General de Archivos y Directorios
+## 📐 1. Clasificación General del Repositorio
 
-A continuación se clasifica la totalidad de los componentes existentes en la raíz y subdirectorios del proyecto:
+El repositorio es un **microservicio en Go (v1.25+)** especializado en la **gestión de autenticación, autorización (RBAC), registro multiorigen e identidades** para la plataforma deportiva y nutricional **Traynova / Gestrym**.
 
-| Categoría | Archivo / Directorio | Descripción y Propósito |
+### Taxonomía de Archivos y Carpetas
+
+| Categoría | Ubicación | Descripción |
 | :--- | :--- | :--- |
-| **Punto de Entrada** | `main.go` | Inicia la ejecución llamando a `src.RunServer()` para bootstrapear la aplicación. |
-| **Punto de Entrada** | [src/app.go](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/src/app.go) | Configura el servidor Gin, inicializa Viper, conecta PostgreSQL vía GORM, registra Swagger y levanta las rutas. |
-| **Configuración** | `.env` / `.env.example` | Variables de entorno (puertos, credenciales DB, clave JWT, URLs externas de notificaciones). |
-| **Configuración** | [go.mod](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/go.mod) / `go.sum` | Gestión de módulos Go (versión 1.25.0) y árbol de dependencias de terceros. |
-| **Despliegue** | [Dockerfile](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/Dockerfile) | Definición multi-stage para empaquetar la aplicación en una imagen de producción optimizada. |
-| **Despliegue** | `deployment/env_local.yaml` | Configuración adicional de entorno local usada por Viper. |
-| **Documentación** | [README.md](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/README.md) | Documentación principal de presentación del proyecto para GitHub. |
-| **Documentación** | [IA_MEMORY.md](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/IA_MEMORY.md) | Registro de arquitectura, decisiones técnicas, contexto y cambios históricos para asistentes de IA. |
-| **Documentación** | [GUIA_FRONT.md](file:///Users/jhonnier.gomez/Documents/Personal/traynova.auth.back/GUIA_FRONT.md) | Guía técnica y de contratos API orientada a los desarrolladores de frontend / móvil. |
-| **Documentación** | `docs/` | Archivos auto-generados por Swagger (`docs.go`, `swagger.json`, `swagger.yaml`). |
-| **Código Fuente** | `src/common/` | Capa transversal (infraestructura compartida, middlewares, modelos DB, utilidades, rutas). |
-| **Código Fuente** | `src/core/` | Capa de dominio y aplicación organizada por Bounded Contexts (Auth, Login, JWT, Roles, etc.). |
+| **Punto de Entrada** | `main.go`, `src/app.go` | Inicializan la aplicación, leen argumentos CLI, cargan Viper, ejecutan migraciones GORM y levantan el servidor HTTP Gin. |
+| **Núcleo de Dominio** | `src/core/` | Contiene los submódulos de negocio (`auth`, `login`, `jwt`, `roles`, `permissions`, `actions`, `access_levels`, `token_types`) organizados en **Arquitectura Hexagonal**. |
+| **Capa Compartida** | `src/common/` | Reúne infraestructura común: conexión DB, auto-migración, middlewares JWT/CORS/RBAC, modelos relacionales GORM y utilidades. |
+| **Configuración** | `.env`, `.env.example`, `deployment/env_local.yaml` | Define parámetros de ejecución local y de producción (credenciales DB, secretos JWT, URLs de servicios). |
+| **Despliegue** | `Dockerfile` | Define la compilación e imagen Docker para entornos de producción (Docker / Cloud / Render). |
+| **Documentación** | `README.md`, `GUIA_FRONT.md`, `IA_MEMORY.md`, `docs/` | Documentación técnica del proyecto, especificación OpenAPI/Swagger, manual de integración para Frontend y memoria para IA. |
 
 ---
 
-## 2. 🧩 Desglose de la Capa Core (`src/core/`)
+## 🏗️ 2. Clasificación por Capas de Arquitectura (Hexagonal)
 
-Cada subdirectorio en `src/core/` representa un módulo de negocio independiente diseñado bajo arquitectura hexagonal (dividido en `app`, `domain` e `infra`):
+El código fuente en `src/` está estrictamente dividido respetando el patrón **Ports & Adapters (Arquitectura Hexagonal)**:
 
-### 2.1. 🔑 `src/core/auth/` (Módulo Principal)
-Es el núcleo del sistema de gestión de usuarios.
-- **`domain/`**:
-  - `ports/`: Define la interfaz `IAuthRepository` (contrato de persistencia) e `IAuthService` (contrato de servicios).
-  - `structs/`: Contiene los DTOs de petición y respuesta (`RegisterRequest`, `UpdateUserRequest`, `PasswordRecoveryRequest`, `PasswordResetRequest`, `GetUserResponse`, etc.).
-- **`app/`**:
-  - `auth_service.go`: Implementa la lógica de negocio completa: registro público e interno, validación de contraseñas, envío de emails de confirmación/recuperación, administración de perfiles Gym/Trainer, soft delete y gestión de grupos/sedes.
-- **`infra/`**:
-  - `controllers/`: Adaptadores HTTP (`AuthPublicController`, `AuthPrivateController`) que manejan las peticiones REST.
-  - `repositories/`: Adaptador GORM (`authRepository`) que interactúa directamente con PostgreSQL.
-
-### 2.2. 🔓 `src/core/login/`
-Se encarga exclusivamente de la autenticación de usuarios existentes.
-- **`app/login_service.go`**: Verifica credenciales (email/password), comprueba si el usuario está activo y si ha confirmado su correo, e invoca el servicio JWT para emitir los tokens de acceso.
-- **`infra/controllers/login_controller.go`**: Expone el endpoint público `POST /public/login`.
-
-### 2.3. 🎟️ `src/core/jwt/`
-Servicio especializado en la gestión de JSON Web Tokens.
-- **`app/jwt_service.go`**: Emisión de tokens firmados HMAC con datos de sesión (`user_id`, `role_id`, `access_level_id`) y registro de tokens en la base de datos para seguimiento y revocación.
-
-### 2.4. 🏷️ Módulos de Catálogo y Permisos
-- `src/core/roles/`: Gestión del catálogo de roles de usuario (Cliente, Coach, Gym, Admin).
-- `src/core/permissions/`: Definición y asignación de permisos sobre recursos del sistema.
-- `src/core/actions/`: Catálogo de acciones (Crear, Leer, Actualizar, Eliminar, etc.).
-- `src/core/access_levels/`: Definición de niveles de acceso contextuales.
-- `src/core/token_types/`: Tipos de token en el sistema (ej. Activación de cuenta, Recuperación de contraseña, Refresh token).
-
----
-
-## 3. 🛠️ Desglose de la Capa Common (`src/common/`)
-
-Componentes compartidos utilizados por múltiples módulos core:
-
-### 3.1. ⚙️ `src/common/config/`
-- **`env_loader.go`**: Carga de variables de entorno mediante `viper`. Lee `.env` o variables del sistema operativo con valores por defecto.
-
-### 3.2. 🛡️ `src/common/middleware/`
-- **`JWTModdleware.go`**: Middleware que intercepta peticiones HTTP, extrae el token `Bearer` del header `Authorization`, valida la firma con `JWT_KEY` e inyecta en el contexto de Gin los valores `user_id`, `role_id` y `access_level_id`.
-- **`RoleMiddleware.go`**: Middleware de autorización que restringe el acceso a endpoints evaluando el `role_id` presente en el contexto (ej. `RequireRoles(4)` para superadministradores).
-- **`CORSMiddleware.go`**: Habilita cabeceras de Cross-Origin Resource Sharing para peticiones desde clientes Web.
-
-### 3.3. 🗄️ `src/common/models/`
-Contiene todas las estructuras de datos mapeadas a PostgreSQL con GORM:
-- **`User`**: Información fundamental de la identidad (Email, Password hash, FullName, Prefix, Phone, IsActive, EmailConfirmed, RoleID).
-- **`Role` / `Permission` / `RolePermission`**: Esquema de Control de Acceso Basado en Roles (RBAC).
-- **`UserToken` / `UserTokenType`**: Registro y auditoría de tokens generados en la plataforma.
-- **`TrainerProfile` / `GymProfile`**: Información extendida para perfiles de negocio (colores primarios/secundarios, código de referido, workstation, ciudad, departamento, país, avatar).
-- **`TrainerClient` / `GymClient`**: Tabla de enlace que mapea las relaciones de negocio entre entrenadores, gimnasios y sus clientes asignados.
-- **`UserGroup` / `UserGroupMember`**: Gestión de sedes o grupos de usuarios (clientes/entrenadores) pertenecientes a un gimnasio o entrenador.
-
-### 3.4. 🛣️ `src/common/routes/`
-- **`ServerRoutesDefinition.go`**: Centraliza el registro de todas las rutas HTTP del servidor divididas en tres grupos principales:
-  1. **Rutas Públicas (`/public/`)**: Accesibles sin autenticación (registro, login, confirmación de email, validación de token, recuperación de clave).
-  2. **Rutas Privadas (`/private/`)**: Requieren token JWT válido (gestión de usuarios, clientes, sedes/grupos, perfiles).
-  3. **Rutas Protegidas (`/protected/`)**: Requieren token JWT y rol administrativo específico.
-
-### 3.5. 📨 `src/common/shared/`
-- **`notification_service.go`**: Cliente HTTP desacoplado que envía peticiones al microservicio externo de notificaciones pro usando plantillas estructuradas JSON (`EMAIL`, `account_confirmation`, `recovery_password`) y autenticación por `X_API_KEY`.
-
-### 3.6. 🧰 `src/common/utils/`
-- Encriptación de contraseñas con `bcrypt`, constantes de roles, formateadores de respuesta JSON uniforme y utilidades generales.
-
----
-
-## 4. 🗃️ Modelo de Datos y Relaciones
-
-```mermaid
-erDiagram
-    ROLE ||--o{ USER : "posee"
-    USER ||--o{ USER_TOKEN : "posee"
-    USER_TOKEN }o--|| USER_TOKEN_TYPE : "pertenece a"
-    ROLE ||--o{ ROLE_PERMISSION : "tiene"
-    PERMISSION ||--o{ ROLE_PERMISSION : "pertenece a"
-    
-    USER ||--o| TRAINER_PROFILE : "perfil entrenador"
-    USER ||--o| GYM_PROFILE : "perfil gimnasio"
-    
-    USER ||--o{ TRAINER_CLIENT : "entrenador/cliente"
-    USER ||--o{ GYM_CLIENT : "gimnasio/cliente"
-    
-    USER ||--o{ USER_GROUP : "dueño de grupo/sede"
-    USER_GROUP ||--o{ USER_GROUP_MEMBER : "contiene"
-    USER ||--o{ USER_GROUP_MEMBER : "es miembro de"
+```
+src/
+├── common/             <-- Capa Cross-Cutting / Infraestructura Compartida
+│   ├── config/         <-- Conexión a Base de Datos PostgreSQL y AutoMigrate
+│   ├── middleware/     <-- Middlewares HTTP (JWT Auth, RBAC Role Validation, CORS)
+│   ├── models/         <-- Definiciones GORM de Tablas / Entidades Relacionales
+│   ├── routes/         <-- Enrutador Gin y mapeo de grupos (public, private, protected)
+│   ├── shared/         <-- Interfaces o estructuras compartidas globales
+│   └── utils/          <-- Encriptación Bcrypt, Logger, Constantes de Roles
+└── core/               <-- Módulos de Dominio Especifico
+    ├── auth/           <-- Submódulo principal (Registro, Confirmación, Grupos, Usuarios)
+    ├── login/          <-- Submódulo de inicio de sesión y autenticación
+    ├── jwt/            <-- Submódulo de generación y registro de tokens
+    ├── roles/          <-- Submódulo CRUD para Roles (RBAC)
+    ├── permissions/    <-- Submódulo CRUD para Permisos (RBAC)
+    ├── actions/        <-- Submódulo CRUD para Acciones del Sistema
+    ├── access_levels/  <-- Submódulo CRUD para Niveles de Acceso
+    └── token_types/    <-- Submódulo CRUD para Tipos de Token (activación, recuperación)
 ```
 
----
-
-## 5. 🔄 Explicación de los Flujos Clave del Sistema
-
-### 5.1. Flujo de Registro y Confirmación de Email
-```text
-[Cliente/Front] ---> POST /public/auth/register
-                       │
-                       ▼
-                 [AuthService]
-                       │
-                       ├─► Crea Usuario (is_active: false, email_confirmed: false)
-                       ├─► Si es Gym/Trainer: Guarda GymProfile / TrainerProfile
-                       ├─► Genera Token JWT de Activación (UserToken)
-                       └─► Llama NotificationService (HTTP POST /send con plantilla 'account_confirmation')
-                                 │
-                                 ▼
-                         [Correo Electrónico enviado con Enlace]
-                                 │
-                                 ▼
-                 GET /public/auth/confirm?token=...
-                       │
-                       ▼
-                 [AuthService] ---> (is_active: true, email_confirmed: true)
-```
-
-### 5.2. Flujo de Autenticación y Autorización (Login)
-```text
-[Cliente/Front] ---> POST /public/login (Email, Password)
-                       │
-                       ▼
-                 [LoginService]
-                       │
-                       ├─► Busca usuario por email
-                       ├─► Verifica hash de contraseña con Bcrypt
-                       ├─► Valida is_active == true y email_confirmed == true
-                       └─► Emite Access Token JWT (con user_id, role_id, access_level_id)
-                                 │
-                                 ▼
-                 [Peticiones Subsiguientes] ---> Authorization: Bearer <Token>
-                                 │
-                                 ▼
-                         [JWTModdleware] ---> Setea contexto Gin (user_id, role_id)
-```
+En cada submódulo dentro de `src/core/` se cumple la tripleta:
+- **`app/` (Application Layer)**: Implementa los servicios del sistema y la lógica de caso de uso (ej. `auth_service.go`, `login_service.go`).
+- **`domain/` (Domain Layer)**: Contiene los puertos/interfaces (`IAuthRepository`, `ILoginRepository`) y las estructuras DTO de entrada y salida (`structs/`).
+- **`infra/` (Infrastructure Layer)**: Contiene los adaptadores concretos:
+  - Controladores HTTP Gin (ej. `auth_public_controller.go`, `auth_private_controller.go`).
+  - Repositorios de base de datos GORM (ej. `auth_repository.go`, `login_repository.go`).
 
 ---
 
-## 6. 📊 Resumen de Estado del Repositorio
+## 🗄️ 3. Clasificación del Modelo de Base de Datos (Entidades GORM)
 
-- **Compilación:** Pasa exitosamente con `go build ./...`.
-- **Integridad de Arquitectura:** Las capas de dominio, aplicación e infraestructura están estrictamente desacopladas.
-- **Microservicios Vinculados:** Se comunica vía HTTP/JSON con el microservicio de Notificaciones.
-- **Documentación Swagger:** Generada y disponible en `/swagger/index.html`.
+Las entidades están definidas en `src/common/models/` y traducidas a tablas PostgreSQL mediante GORM:
+
+### A. Sistema de Identidades y Usuarios
+- **`User`**: Entidad principal que almacena `email`, `password_hash`, `full_name`, `phone_prefix`, `phone_number`, `is_active`, `email_confirmed`, `role_id` y marcas de tiempo (`created_at`, `updated_at`, `deleted_at` para soft delete).
+- **`GymProfile`**: Información extendida para gimnasios (`city`, `department`, `country`, `primary_color`, `secondary_color`, `referral_code`, `workstation`).
+- **`TrainerProfile`**: Información extendida para entrenadores (`primary_color`, `secondary_color`, `referral_code`, `files_id` para avatar).
+
+### B. Control de Acceso Basado en Roles (RBAC)
+- **`Role`**: Roles del sistema (`Client`=1, `Coach`=2, `Gym`=3, `Admin`=4).
+- **`Permission`**: Permisos asociados a un rol y recurso.
+- **`RolePermission`**: Tabla pivote para la relación muchos a muchos entre `Role` y `Permission`.
+- **`Action`**: Operaciones registrables sobre recursos.
+- **`AccessLevel`**: Definición de grados o niveles de acceso.
+
+### C. Relaciones de Negocio Deportivo
+- **`TrainerClient`**: Mapea la relación directa entre un Entrenador (`trainer_id`) y su Cliente (`client_id`).
+- **`GymClient`**: Mapea la relación directa entre un Gimnasio (`gym_id`) y su Cliente (`client_id`).
+- **`TrainerProfile` (Gym Binding)**: Asocia un entrenador a un gimnasio a través del campo `gym_id`.
+
+### D. Grupos y Sedes de Entrenamiento
+- **`UserGroup`**: Define agrupaciones de usuarios creadas por un Gimnasio (ej. "Sede Norte", "Sede Centro") o por un Entrenador (ej. "Grupo Maratón").
+- **`UserGroupMember`**: Tabla relacional que vincula un `group_id` con un `user_id` (pudiendo ser clientes o entrenadores).
+
+### E. Tokens de Seguridad y Estado
+- **`UserTokenType`**: Catálogo de tipos de token (1: activación de cuenta, 2: recuperación de contraseña).
+- **`UserToken`**: Registra los tokens JWT emitidos para un usuario, su tipo, estado de uso (`is_used`) y fecha de expiración.
+
+---
+
+## 🔑 4. Explicación Detallada de los Flujos de Negocio
+
+### 1. Flujo de Registro y Confirmación de Cuenta
+```
+[ Frontend / App ] ──POST /public/auth/register──> [ AuthPublicController ]
+                                                             │
+                                                             ▼
+                                                    [ AuthService.RegisterUser ]
+                                                             │
+                                      ┌──────────────────────┴──────────────────────┐
+                                      ▼                                             ▼
+                             [ Se crea User inactivo ]                   [ Se crea perfil según rol ]
+                             (is_active: false)                          (GymProfile / TrainerProfile)
+                             (email_confirmed: false)                    (TrainerClient / GymClient)
+                                      │
+                                      ▼
+                             [ Genera JWT Activación ]
+                             (UserToken tipo activation)
+                                      │
+                                      ▼
+                             [ Servicio Notificaciones ] ──HTTP POST──> [ Template account_confirmation ]
+```
+- **Paso 1**: El usuario se registra enviando datos de perfil y origen (`registration_source`: `"self"`, `"gym"`, `"trainer"`).
+- **Paso 2**: El usuario se almacena en base de datos con **contraseña hasheada con Bcrypt**, pero en estado **inactivo** (`is_active: false`) y **sin confirmar** (`email_confirmed: false`).
+- **Paso 3**: Se genera un token JWT de activación registrado en `UserToken`.
+- **Paso 4**: El servicio realiza una petición HTTP al microservicio de notificaciones usando el formato unificado de plantilla `account_confirmation` con la URL de confirmación.
+- **Paso 5**: Al hacer clic en el enlace (`GET /public/auth/confirm?token=...`), el backend valida el token, marca `is_active: true`, `email_confirmed: true` e invalida el token.
+
+### 2. Flujo de Inicio de Sesión (Login)
+- **Ruta**: `POST /public/login`
+- **Proceso**:
+  1. Recibe email y contraseña.
+  2. Busca al usuario en la base de datos por email.
+  3. **Verifica estado**: Si `is_active` o `email_confirmed` es falso, rechaza el inicio de sesión.
+  4. Compara la contraseña recibida contra el `password_hash` mediante `bcrypt.CompareHashAndPassword`.
+  5. Si es correcta, genera un Access Token JWT con los claims `user_id`, `role_id` y `access_level_id`.
+
+### 3. Flujo de Recuperación de Contraseña
+- **Solicitud**: `POST /public/auth/password/recovery` con el email del usuario.
+- **Generación**: Se crea un `UserToken` de recuperación y se envía la plantilla de correo `recovery_password` con el enlace de restauración.
+- **Restablecimiento**: `POST /public/auth/password/reset` recibe el token de recuperación y la nueva contraseña. Se valida el token, se actualiza el hash de la contraseña en la BD y se marca el token como consumido (`is_used: true`).
+
+### 4. Flujo de Grupos, Sedes y Control de Acceso Jerárquico
+- **Grupos / Sedes**:
+  - `POST /private/auth/groups`: Permite a Gimnasios o Entrenadores crear grupos/sedes.
+  - `GET /private/auth/users?group_id=...`: Permite filtrar el listado de usuarios por sede o grupo.
+- **Control de Jerarquía y Pertenencia**:
+  - Los Entrenadores solo pueden visualizar y editar a los clientes asignados directamente a su código/ID (`TrainerClient`).
+  - Los Gimnasios pueden visualizar a sus entrenadores y a los clientes asociados tanto directa como indirectamente (`GymClient` + `TrainerClient` vinculados a sus entrenadores).
+  - Los Administradores (`role_id: 4`) poseen visibilidad global.
+
+---
+
+## 📄 5. Clasificación de Archivos y Documentación del Proyecto
+
+### Archivos de Documentación
+1. **`README.md`**: Presentación general del proyecto para GitHub, instrucciones de instalación, variables de entorno y mapa de rutas.
+2. **`GUIA_FRONT.md`**: Manual técnico detallado para desarrolladores Frontend. Explica las respuestas JSON, errores HTTP (400, 401, 409, 500) y cómo consumir los endpoints con cabeceras `Authorization: Bearer <token>`.
+3. **`IA_MEMORY.md`**: Documento vivo que preserva las decisiones arquitectónicas, reglas de no-rotura, cambios recientes y contexto histórico para ser leído por asistentes IA.
+4. **`CLASIFICACION_Y_DETALLE.md`** *(este documento)*: Inventario y desglose exhaustivo del repositorio.
+
+### Archivos de Configuración y Despliegue
+- **`deployment/env_local.yaml`**: Archivo de variables YAML utilizado cuando se ejecuta en desarrollo local (`--local=true`).
+- **`.env.example`**: Plantilla con las variables de entorno requeridas para ejecución en contenedores o servidores de integración continua.
+- **`Dockerfile`**: Script de construcción en multi-stage para generar un binario ligero de Go y desplegar en entornos como Render, Kubernetes o AWS.
+
+---
+
+## ⚠️ 6. Restricciones y Reglas de Negocio a Preservar
+
+1. **Arquitectura Hexagonal Estricta**: No realizar consultas a la base de datos directamente desde los controladores ni desde la capa `common`. Todo acceso a datos debe pasar por `app service` -> `domain port` -> `infra repository`.
+2. **Estado de Usuario al Registrar**: Todo nuevo usuario registrado DEBE crearse deshabilitado (`is_active: false`) hasta que confirme su correo electrónico.
+3. **Hasheo Obligatorio de Contraseñas**: Nunca almacenar ni transmitir contraseñas en texto plano; usar siempre el paquete `common/utils` con Bcrypt.
+4. **Seguridad JWT**: Ningún endpoint bajo `/private/` o `/protected/` debe omitir el middleware `JWTModdleware.go`.
+
+---
+
+## 📈 7. Oportunidades de Evolución y Mejoras Futuras
+
+- **Implementación de Refresh Tokens**: Incorporar rotación de `refresh_token` con expiración prolongada y `access_token` de vida corta.
+- **OAuth2 / Google Sign-In**: Finalizar e integrar completamente la autenticación con Google (código actualmente preparado en controlador).
+- **Pruebas Automatizadas**: Agregar suites de tests unitarios y de integración para la capa de servicios y controladores con `testify` o `go test`.
+- **Métricas y Telemetría**: Integrar Prometheus/OpenTelemetry para monitoreo de llamadas a endpoints de autenticación.
