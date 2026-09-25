@@ -1,39 +1,27 @@
-# Usa la imagen oficial de Golang como entorno de compilación (Builder)
+# Stage 1: Build binary
 FROM golang:1.25.0-alpine AS builder
 
-# Configura variables de entorno para la construcción
-ENV CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64
-
-# Crea el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copia los archivos de módulos de go
-COPY go.mod go.sum ./
+ENV CGO_ENABLED=0 \
+    GOOS=linux
 
-# Descarga todas las dependencias
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Copia el resto del código fuente
 COPY . .
 
-# Compila la aplicación. Genera un ejecutable llamado "gestrym-auth"
-RUN go build -o gestrym-auth main.go
+RUN go build -ldflags="-w -s" -o gestrym-auth main.go
 
-# Crea una segunda etapa más ligera para el despliegue
-FROM alpine:latest
+# Stage 2: Minimal runtime
+FROM alpine:3.20
 
-# Instala certificados necesarios para llamadas HTTPS externas
 RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /app
 
-# Copia el binario compilado desde la etapa "builder"
 COPY --from=builder /app/gestrym-auth .
 
-# Expone el puerto por defecto (asumido 8080 del stack web normal de backend)
 EXPOSE 8080
 
-# Comando para ejecutar la aplicación
 CMD ["./gestrym-auth"]

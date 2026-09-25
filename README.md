@@ -3,10 +3,10 @@
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev/)
 [![Gin Framework](https://img.shields.io/badge/Framework-Gin_Gonic-008080?style=flat-square&logo=gin&logoColor=white)](https://gin-gonic.com/)
 [![GORM](https://img.shields.io/badge/ORM-GORM_PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://gorm.io/)
-[![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-orange?style=flat-square)](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software))
+[![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-orange?style=flat-square)](<https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)>)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)]()
 
-Microservicio central de **Autenticación, Autorización y Gestión de Identidades** para la plataforma deportiva y nutricional **Traynova / Gestrym**. 
+Microservicio central de **Autenticación, Autorización y Gestión de Identidades** para la plataforma deportiva y nutricional **Traynova / Gestrym**.
 
 El sistema gestiona usuarios, roles jerárquicos, permisos dinámicos, emisión de tokens JWT, flujos de confirmación por email, restablecimiento de contraseñas y organización por grupos/sedes de entrenamiento.
 
@@ -32,6 +32,7 @@ El sistema gestiona usuarios, roles jerárquicos, permisos dinámicos, emisión 
 El microservicio `traynova.auth.back` actúa como la **fuente de verdad** para la identidad de los usuarios en la plataforma. Está diseñado bajo el patrón de **Arquitectura Hexagonal (Ports & Adapters)** para garantizar un backend completamente desacoplado de las bases de datos o los frameworks HTTP.
 
 ### Objetivos clave de negocio:
+
 - **Gestión centralizada de identidades**: Soporta clientes, entrenadores (coaches), gimnasios (gyms) y administradores.
 - **Relaciones de negocio automatizadas**: Asocia de forma transparente clientes a entrenadores (`TrainerClient`), clientes a gimnasios (`GymClient`) y entrenadores a gimnasios (`TrainerProfile`).
 - **Seguridad y Control de Acceso**: Control de acceso basado en roles (RBAC) con tokens JWT y expiración configurable.
@@ -57,6 +58,7 @@ El proyecto sigue estrictamente los principios de **Arquitectura Hexagonal**:
 ```
 
 ### Capas del Proyecto:
+
 - **`src/common`**: Configuración global de base de datos, middlewares (JWT y RBAC), modelos compartidos de base de datos, utilidades de encripción/logging y enrutador Gin.
 - **`src/core/<modulo>`**:
   - **`app`**: Lógica de aplicación, casos de uso y orquestación de servicios de dominio.
@@ -94,7 +96,7 @@ El proyecto sigue estrictamente los principios de **Arquitectura Hexagonal**:
 
 6. **Control de Estado de Usuarios (Toggle & Soft Delete)**:
    - Endpoint `PATCH /private/auth/users/:id/status` para deshabilitar/habilitar usuarios manualmente.
-   - Eliminación suave (*soft delete*) preservando la integridad referencial.
+   - Eliminación suave (_soft delete_) preservando la integridad referencial.
 
 ---
 
@@ -150,6 +152,7 @@ traynova.auth.back/
 ## 🌐 Enrutamiento y Endpoints API
 
 ### 🔓 Endpoints Públicos (`/gestrym-auth/public/*`)
+
 - `POST /public/login` - Inicio de sesión y emisión de tokens.
 - `POST /public/auth/register` - Autorregistro público de usuarios.
 - `GET  /public/auth/confirm` - Confirmación de cuenta mediante token enviado por correo.
@@ -158,6 +161,7 @@ traynova.auth.back/
 - `POST /public/auth/password/reset` - Restablecimiento de contraseña con token.
 
 ### 🔒 Endpoints Privados (`/gestrym-auth/private/*`)
+
 - `POST   /private/auth/register` - Registro de usuarios por parte de Entrenadores o Gimnasios.
 - `GET    /private/auth/users` - Listado de usuarios activos con filtros (soporta `group_id`).
 - `GET    /private/auth/users/:id` - Obtener detalle de usuario por ID.
@@ -171,6 +175,7 @@ traynova.auth.back/
 - `DELETE /private/auth/groups/:id` - Eliminar grupo o sede.
 
 ### 🛡️ Endpoints Protegidos / Catálogos (`/gestrym-auth/protected/*`)
+
 - Catálogos administrativos protegidos por rol Admin (`RequireRoles(4)`): `/roles`, `/permissions`, `/actions`, `/access-levels`, `/token-types`.
 
 ---
@@ -179,29 +184,31 @@ traynova.auth.back/
 
 Configurables mediante archivo `.env` o variables de ambiente del contenedor:
 
-| Variable | Descripción | Valor por Defecto / Ejemplo |
-| :--- | :--- | :--- |
-| `GESTRYM_SERVER_ADDRESS` | Puerto y host donde corre la API | `:8080` |
-| `GIN_MODE` | Modo de ejecución de Gin (`debug` / `release`) | `debug` |
-| `GESTRYM_DB_HOST` | Host de la base de datos PostgreSQL | `localhost` |
-| `GESTRYM_DB_USER` | Usuario PostgreSQL | `postgres` |
-| `GESTRYM_DB_PASSWORD` | Contraseña PostgreSQL | `postgres` |
-| `GESTRYM_DB_NAME` | Nombre de la base de datos | `gestrym_auth_db` |
-| `GESTRYM_DB_PORT` | Puerto PostgreSQL | `5432` |
-| `JWT_KEY` | Clave secreta para firmar tokens JWT | `secret_key_change_me` |
-| `NOTIFICATION_SERVICE_URL` | Endpoint del servicio de notificaciones pro | `http://localhost:8443` |
-| `DASHBOARD_URL` | URL base de la aplicación web / dashboard | `http://localhost:3000` |
-| `X_API_KEY` | Llave API para autorizar el envío de notificaciones | `your_api_key` |
+| Variable                   | Descripción                                         | Valor por Defecto / Ejemplo |
+| :------------------------- | :-------------------------------------------------- | :-------------------------- |
+| `GESTRYM_SERVER_ADDRESS`   | Puerto y host donde corre la API                    | `:8080`                     |
+| `GIN_MODE`                 | Modo de ejecución de Gin (`debug` / `release`)      | `debug`                     |
+| `GESTRYM_DB_HOST`          | Host de la base de datos PostgreSQL                 | `localhost`                 |
+| `GESTRYM_DB_USER`          | Usuario PostgreSQL                                  | `postgres`                  |
+| `GESTRYM_DB_PASSWORD`      | Contraseña PostgreSQL                               | `postgres`                  |
+| `GESTRYM_DB_NAME`          | Nombre de la base de datos                          | `gestrym_auth_db`           |
+| `GESTRYM_DB_PORT`          | Puerto PostgreSQL                                   | `5432`                      |
+| `JWT_KEY`                  | Clave secreta para firmar tokens JWT                | `secret_key_change_me`      |
+| `NOTIFICATION_SERVICE_URL` | Endpoint del servicio de notificaciones pro         | `http://localhost:8443`     |
+| `DASHBOARD_URL`            | URL base de la aplicación web / dashboard           | `http://localhost:3000`     |
+| `X_API_KEY`                | Llave API para autorizar el envío de notificaciones | `your_api_key`              |
 
 ---
 
 ## 🚀 Despliegue y Ejecución Local
 
 ### 1. Prerrequisitos
+
 - [Go 1.25+](https://go.dev/dl/) instalado.
 - Instancia activa de **PostgreSQL**.
 
 ### 2. Clonar e Instalar Dependencias
+
 ```bash
 git clone https://github.com/tu-usuario/traynova.auth.back.git
 cd traynova.auth.back
@@ -209,13 +216,17 @@ go mod download
 ```
 
 ### 3. Ejecución Local (Desarrollo)
+
 Crea o edita `deployment/env_local.yaml` con tus credenciales locales de PostgreSQL y ejecuta:
+
 ```bash
 go run main.go --local=true
 ```
 
 ### 4. Ejecución en Producción / Docker
+
 Construir y correr la imagen Docker:
+
 ```bash
 docker build -t traynova-auth-back .
 docker run -p 8080:8080 --env-file .env traynova-auth-back
@@ -225,7 +236,7 @@ docker run -p 8080:8080 --env-file .env traynova-auth-back
 
 ## 📄 Documentación Swagger
 
-El microservicio expone su documentación Swagger generada dinámicamente. 
+El microservicio expone su documentación Swagger generada dinámicamente.
 
 Con el servidor corriendo, accede en el navegador a:
 👉 **`http://localhost:8080/swagger/index.html`** (o en la ruta configurada `/gestrym-auth/swagger/index.html`).
@@ -233,5 +244,5 @@ Con el servidor corriendo, accede en el navegador a:
 ---
 
 <p align="center">
-  Desarrollado con ❤️ para la plataforma <b>Traynova</b>.
+  Desarrollado con ❤️ para la plataforma <b>Gestrym</b>.
 </p>

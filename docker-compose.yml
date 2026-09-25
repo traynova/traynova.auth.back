@@ -1,0 +1,16 @@
+networks:
+  gestrym-network:
+    external: true
+
+services:
+  gestrym-auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${AUTH_IMAGE:-jhonnier/back-auth:${VERSION:-1.0.0}}
+    container_name: gestrym-auth
+    restart: always
+    env_file:
+      - stack.env
+    networks:
+      - gestrym-network
